@@ -1,0 +1,66 @@
+<HTML><HEAD>
+<TITLE>Yale Bright Star Catalog</TITLE>
+</HEAD><BODY bgcolor=white text=black>
+<CENTER><TABLE>
+<TD><A HREF="index.html"><IMG border=0 SRC="caticon.gif" alt="Catalogs">
+<TD><H1>Yale Bright Star Catalog</H1>
+<TD><A HREF="../wcstools/wcstools.files.html">
+<IMG border=0 SRC="../wcstools/wcsficon.gif" ALT="WCSTools Catalogs"></A>
+</TABLE></CENTER>
+These files contain version 5 of the Yale Bright Star Catalog of 9,110 stars,
+including B1950 positions, proper motions, magnitudes, and, usually, spectral
+types in a locally-developed <A HREF="catalogsb.html">binary format</A>
+described below.
+This catalog is more or less complete to V=7.
+<P>
+<a href="BSC5"><I>BSC5</I></a> is sorted by increasing ID number, with
+J2000 coordinates, It is used by the program
+<A HREF="../wcstools/scat/sbsc.html"><B>sbsc</B></A> (which invokes
+<A HREF="../wcstools/scat/"><B>scat</B></A>)
+when the BSC number is known and position, magnitude, and/or spectral
+type information is desired.
+<P>
+<a href="BSC5ra"><I>BSC5ra</I></a>, the RA-sorted version, is used for
+fast searches by the program
+<A HREF="../wcstools/scat/sbsc.html"><B>sbsc</B></A> (which invokes
+<A HREF="../wcstools/scat/"><B>scat</B></A>)
+and for plotting by <A HREF="../skymap.html"><I>skymap</I></A>.
+<P>
+A gzipped 521,425-byte file containing both files with B1950 coordinates
+in Sun/Mac byte order is available here as <A HREF="bsc.tar.gz"><I>bsc.tar.gz</I></A>.
+<a href="../wcstools/scat/"><b>scat</b></a>
+can read these files on machines with either byte order.
+<P>
+<I>BSC5</I>, a <B>291,548-byte</B> file, is available in PC byte order
+via HTTP as
+<a href="BSC5"><I>BSC5</I></a>.
+
+<BR>
+<I>BSC5ra</I>, a <B>291,548-byte</B> file, is available in Sun/Alpha byte order
+via HTTP as
+<a href="BSC5ra"><I>BSC5ra</I></a>.
+<br>
+WCSTools programs can read either byte order on any machine.
+<P>
+Detailed descriptions of the
+<A HREF="bsc5.header.html">binary header format</A>
+and
+<A HREF="bsc5.entry.html">binary entry format</A> are available.
+<P>
+
+An ASCII version with more information for each star is available here:<ul>
+<li> <a href="ybsc5.readme">ybsc5.readme</a> [uncompressed catalog description]
+<li> <a href="ybsc5.gz">ybsc5.gz</a> [gzip-compressed ASCII catalog]
+<li> <a href="ybsc5.notes.gz">ybsc5.notes.gz</a> [gzip-compressed catalog notes]
+</ul>
+<p>
+Other online documentation is available at
+<a href="http://heasarc.gsfc.nasa.gov/W3Browse/star-catalog/bsc5p.html">
+<i>http://heasarc.gsfc.nasa.gov/W3Browse/star-catalog/bsc5p.html</i></a>.
+<HR>
+<center>
+<h3>Sky Coverage</h3>
+<img src="bsc5.gif">
+<p>
+[<A HREF="../wcstools/scat/sbsc.html">WCSTools <B>sbsc</B></A>]
+</BODY></HTML>

@@ -1,0 +1,8 @@
+name = "stjarnkarta-leverans"
+main = "src/index.js"
+compatibility_date = "2026-09-01"
+workers_dev = true
+
+[[kv_namespaces]]
+binding = "JOBS"
+id = "6fbe33b0a323475bbc663f8f18f36bec"

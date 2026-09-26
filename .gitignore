@@ -1,0 +1,5 @@
+.fulfil_secret
+test_leverans.pdf
+__pycache__/
+worker/node_modules/
+worker/.wrangler/

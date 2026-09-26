@@ -1,0 +1,29 @@
+name: leverera
+on:
+  schedule:
+    - cron: "*/10 * * * *"
+  workflow_dispatch: {}
+concurrency: { group: leverera, cancel-in-progress: false }
+jobs:
+  leverera:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12", cache: pip, cache-dependency-path: fulfil/requirements.txt }
+      - run: pip install -r fulfil/requirements.txt
+      - run: python fulfil/fulfil.py
+        env:
+          PORTAL_URL: ${{ secrets.PORTAL_URL }}
+          FULFIL_SECRET: ${{ secrets.FULFIL_SECRET }}
+  keepalive:
+    # schemalagda jobb stängs av efter 60 dagar utan commits – en commit i månaden håller dem vid liv
+    if: github.event.schedule == '*/10 * * * *'
+    runs-on: ubuntu-latest
+    permissions: { contents: write }
+    steps:
+      - uses: actions/checkout@v4
+      - run: |
+          f=.keepalive; m=$(date -u +%Y-%m)
+          if [ "$(cat $f 2>/dev/null)" != "$m" ]; then echo $m > $f; git config user.name leverans-bot; git config user.email bot@users.noreply.github.com; git add $f; git commit -m "keepalive $m"; git push; fi

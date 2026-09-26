@@ -1,0 +1,4 @@
+skyfield==1.55
+numpy==2.4.4
+reportlab==4.4.10
+pymupdf==1.27.2.2
