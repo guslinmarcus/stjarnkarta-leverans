@@ -17,6 +17,9 @@ Jobbets fält "product" väljer generator + grind (saknas fältet = stjärnkarta
                                                                      familjeläge 2–6 personer, språk en/sv/de/fr/es)
     golfbana         golfbana.py         + grind_golfbana.py        (bana, närmaste ort, land, stil, hål/spelare/datum/text valfria,
                                                                      språk en/sv/de; registret per Geofabrik-region, golfdata.py)
+    brollopskarta     brollopskarta.py    + grind_brollopskarta.py   ("hitta hit"-karta, 1-3 platser med roll (vigsel/mottagning/
+                                                                     hotell/parkering), datum, namn, stil; vägen mellan platserna
+                                                                     beräknad på OSM:s vägnät (vagnat.py), språk en/sv/de)
 
 Kartprodukterna hämtar data över nätet (Lantmäteriets FTP, Overpass, Nominatim). Ett tillfälligt nätfel
 lämnar jobbet i kön (nytt försök nästa körning, högst ett dygn). Körningen har en tidsbudget så att
@@ -42,11 +45,14 @@ PRODUCTS = {  # produkt: (generator, grind, tillåtna språk)
     "karlekskarta": ("karlekskarta", "grind_karlekskarta", ("en", "sv", "de")),
     "manfas": ("manfas", "grind_manfas", ("en", "sv", "de", "fr", "es")),
     "golfbana": ("golfbana", "grind_golfbana", ("en", "sv", "de")),
+    "brollopskarta": ("brollopskarta", "grind_brollopskarta", ("en", "sv", "de")),
 }
 GOLF_STYLES = ("klassisk", "vintage", "minimal", "mork")
 MANFAS_STYLES = ("mork", "ljus", "akvarell", "barnrum")
+BROLLOP_STYLES = ("klassisk", "natt", "sepia", "blueprint")  # samma stilar som stadskarta (osmdata.STYLES)
+BROLLOP_ROLES = ("vigsel", "mottagning", "hotell", "parkering", "fest", "annat")
 RUN_BUDGET_S = int(os.environ.get("FULFIL_BUDGET_S", str(11 * 60)))
-EST_S = {"historisk": 900, "stadskarta": 420, "golfbana": 420}  # golfbana: regionregistret byggs ≤ 1 gång/månad (Sverige ≈ 3 min)  # uppskattad längsta tid per order (övriga ≈ 60 s)
+EST_S = {"historisk": 900, "stadskarta": 420, "golfbana": 420, "brollopskarta": 420}  # golfbana: regionregistret byggs ≤ 1 gång/månad (Sverige ≈ 3 min)  # uppskattad längsta tid per order (övriga ≈ 60 s)
 TEMPORARY = ("overpass misslyckades", "FTP-hämtning misslyckades")
 # Delning mellan arbetsflöden: FULFIL_ONLY=historisk (eget jobb, 45 min, cache) och FULFIL_SKIP=historisk (ordinarie 15-min-jobb)
 ONLY = {x for x in os.environ.get("FULFIL_ONLY", "").split(",") if x}
@@ -136,6 +142,8 @@ def make_order(job):
         return make_manfas(job, lang)
     if product == "golfbana":
         return make_golf(job, lang)
+    if product == "brollopskarta":
+        return make_brollop(job, lang)
     g = geocode(job["city"], "SE" if product == "historisk" else job.get("country", ""))
     if not g:
         return None, "city_not_found"
@@ -229,6 +237,36 @@ def make_manfas(job, lang):
             "style": job.get("style") if job.get("style") in MANFAS_STYLES else "mork",
             "row": job.get("row") if mode == "single" and job.get("row") in ("none", "month", "week") else "none",
             "place": moons[0]["place"], "moons": moons, "languages": [lang]}, None
+
+
+def make_brollop(job, lang):
+    """Hitta-hit-kartan: 1-3 platser (roll vigsel/mottagning/hotell/parkering/fest/annat, valfri gatuadress
+    och valfri egen etikett), datum, namn/titel och stil. Adressen (om angiven) slås upp av brollopskarta.py
+    självt (samma OSM-extrakt som vägarna); här slås bara orten upp (GeoNames), som historisk.py."""
+    import re
+    _, lander = load_geo()
+    places = []
+    for p in (job.get("places") or [])[:3]:
+        city = (p.get("city") or "").strip()
+        country = (p.get("country") or "").strip()
+        if not city or norm(country) not in lander:
+            return None, "city_not_found"
+        g = geocode(city, country)
+        if not g:
+            return None, "city_not_found"
+        name, lat, lon, cc, pop, tz = g
+        role = p.get("role") if p.get("role") in BROLLOP_ROLES else "annat"
+        places.append({"role": role, "label": (p.get("label") or "").strip()[:30], "place": city[:40],
+                       "country": country[:40], "cc": cc, "lat": round(lat, 4), "lon": round(lon, 4),
+                       "pop": pop, "address": (p.get("address") or "").strip()[:80]})
+    if not 1 <= len(places) <= 3:
+        return None, "places_count"
+    d = str(job.get("date") or "")
+    if d and not (re.fullmatch(r"\d{4}-\d{2}-\d{2}", d) and "1900-01-01" <= d <= "2100-12-31"):
+        return None, "date_out_of_range"
+    return {"id": job["id"], "product": "brollopskarta", "text": (job.get("text") or "").strip()[:40],
+            "date": d or None, "style": job.get("style") if job.get("style") in BROLLOP_STYLES else "klassisk",
+            "place": places[0]["place"], "places": places, "languages": [lang]}, None
 
 
 def produce(order, workdir):

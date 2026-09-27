@@ -92,6 +92,8 @@ const REASONS = {
   course_ambiguous: "More than one golf course matches that name. Please copy the exact name of your course from the list below and submit again.",
   course_holes_incomplete: "We found the course, but its holes are not completely drawn in OpenStreetMap yet (at least 9 numbered holes, each with a green, are needed for a correct map). Please contact us via Etsy messages and we will refund you.",
   hole_not_found: "The course does not have a hole with that number. Please check the hole number (or leave it empty) and submit again.",
+  platser_for_langt_isar: "Two of your places are more than 15 km apart, which is too far for a printable find-your-way map. Please check the towns (or split them into two separate maps) and submit again.",
+  ingen_vag_hittad: "We could not find a road route between two of your places in OpenStreetMap. Please check the towns and addresses, or contact us via Etsy messages and we will refund you.",
 };
 
 // --- Fler produkter: samma kö, fältet "product" väljer generator + grind i fulfil/fulfil.py (PRODUCTS).
@@ -282,6 +284,50 @@ Object.assign(PRODUCTS, {
     },
   },
 });
+// --- "Hitta hit"-kartan (fulfil/brollopskarta.py + grind_brollopskarta.py). Länk: /?p=brollopskarta
+const BROLLOP_STYLES = { klassisk: "Classic (white)", natt: "Midnight gold", sepia: "Vintage sepia", blueprint: "Blueprint" };
+const BROLLOP_ROLES = { vigsel: "Ceremony", mottagning: "Reception", hotell: "Hotel", parkering: "Parking", fest: "Party", annat: "Other place" };
+Object.assign(PRODUCTS, {
+  brollopskarta: {
+    h1: "Create your find-your-way map",
+    intro: "Enter 1 to 3 places for your wedding, party or celebration – the ceremony, the reception, a hotel or a car park. We draw a printable local map from OpenStreetMap with the places numbered and the route between them calculated on the real road network, with the distance and an approximate driving and walking time. Usually ready within an hour.",
+    textLabel: "Names or title on the map", textPh: "Anna & Erik",
+    button: "Create my map", ready: "Your find-your-way map is ready",
+    readyNote: "One PDF with two pages: a card (A5) and a poster (A4), vector – prints sharp at both sizes. The link works for 90 days.",
+    creating: "Your map is being created", creatingText: (c) => `We are drawing the roads and the route around ${c}.`,
+    file: "find-your-way-map.pdf", langs: LANGS3,
+    fields: (v) => {
+      const pl = v.places || [];
+      let h = `<label for="style">Style</label>${sel("style", BROLLOP_STYLES, v.style || "klassisk")}
+<label for="date">Date (optional)</label><input id="date" name="date" type="date" min="1900-01-01" max="2100-12-31" value="${esc(v.date)}">`;
+      for (let i = 0; i < 3; i++) {
+        const p = pl[i] || {};
+        h += `<p style="margin:18px 0 0"><small>Place ${i + 1}${i === 0 ? "" : " (optional)"}</small></p>
+<div class="row"><div><label for="pr${i}">What is it</label>${sel(`pr${i}`, BROLLOP_ROLES, p.role || (i === 0 ? "vigsel" : i === 1 ? "mottagning" : "hotell"))}</div>
+<div><label for="pl${i}">Your own label (optional)</label><input id="pl${i}" name="pl${i}" maxlength="30" value="${esc(p.label)}" placeholder="e.g. St Mary's Church"></div></div>
+<div class="row"><div><label for="pc${i}">Town</label><input id="pc${i}" name="pc${i}" value="${esc(p.city)}"${i === 0 ? " required" : ""}></div><div><label for="pk${i}">Country</label><input id="pk${i}" name="pk${i}" value="${esc(p.country)}"${i === 0 ? " required" : ""}></div></div>
+<label for="pa${i}">Street address (optional – leave empty to centre on the town)</label><input id="pa${i}" name="pa${i}" maxlength="80" value="${esc(p.address)}">`;
+      }
+      return h;
+    },
+    parse: (f) => {
+      const places = [];
+      for (let i = 0; i < 3; i++) {
+        const city = String(f[`pc${i}`] || "").trim().slice(0, 60), country = String(f[`pk${i}`] || "").trim().slice(0, 60);
+        if (!city && !country) continue;
+        places.push({ role: BROLLOP_ROLES[f[`pr${i}`]] ? f[`pr${i}`] : "annat", label: String(f[`pl${i}`] || "").trim().slice(0, 30),
+                     city, country, address: String(f[`pa${i}`] || "").trim().slice(0, 80) });
+      }
+      return { places, style: BROLLOP_STYLES[f.style] ? f.style : "klassisk", date: /^\d{4}-\d{2}-\d{2}$/.test(String(f.date || "")) ? String(f.date) : "",
+               city: places[0] ? places[0].city : "", country: places[0] ? places[0].country : "" };
+    },
+    validate: (v) => {
+      if (!(v.places.length >= 1 && v.places.length <= 3 && v.places[0].city && v.places[0].country)) return "Please fill in at least the first place (town and country).";
+      if (!v.places.every((p) => TEXT_OK.test(p.city) && TEXT_OK.test(p.country) && TEXT_OK.test(p.address) && TEXT_OK.test(p.label))) return TEXT_MSG;
+      return "";
+    },
+  },
+});
 function normProduct(s) {
   const k = String(s || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
   if (["historisk", "history", "address-through-time", "genom-tiden"].includes(k)) return "historisk";
@@ -291,6 +337,7 @@ function normProduct(s) {
   if (["himmelskalender", "kalender", "calendar", "sky-calendar"].includes(k)) return "himmelskalender";
   if (["golfbana", "golf", "golf-course", "golf-course-map", "golfplatz", "campo-de-golf"].includes(k)) return "golfbana";
   if (["manfas", "moon", "moon-phase", "moonphase", "birth-moon", "mondphase", "fase-lunar", "phase-lune"].includes(k)) return "manfas";
+  if (["brollopskarta", "wedding-map", "weddingmap", "find-your-way-map", "findyourwaymap", "hochzeitskarte"].includes(k)) return "brollopskarta";
   return "";
 }
 function productForm(prod, v = {}, error = "") {
@@ -323,7 +370,7 @@ const LISTING_IDS = {
   stjarnkarta: "LISTING_ID_STJARNKARTA", stjarnkarta_manfas: "LISTING_ID_STJARNKARTA_MANFAS",
   formorkelse: "LISTING_ID_FORMORKELSE", himmelskalender: "LISTING_ID_HIMMELSKALENDER",
   historisk: "LISTING_ID_HISTORISK", stadskarta: "LISTING_ID_STADSKARTA", karlekskarta: "LISTING_ID_KARLEKSKARTA",
-  golfbana: "LISTING_ID_GOLFBANA",
+  golfbana: "LISTING_ID_GOLFBANA", brollopskarta: "LISTING_ID_BROLLOPSKARTA",
 };
 const ECLIPSE_BEFORE = "2027-08-02"; // förmörkelseguiden erbjuds bara före händelsen
 function crossSell(job, today = new Date().toISOString().slice(0, 10)) {
@@ -347,6 +394,8 @@ function crossSell(job, today = new Date().toISOString().slice(0, 10)) {
     golfbana: [{ key: "stadskarta", title: c + " as a city map", text: `A minimal poster of the streets, water and parks of ${c} from OpenStreetMap.` }],
     karlekskarta: [{ key: "stjarnkarta", title: "The sky over your first place",
       text: `A star map of the night sky over ${c} on ${esc((job.places && job.places[0] && job.places[0].date) || "the date of your first place")}.` }],
+    brollopskarta: [{ key: "stjarnkarta", title: "The night sky over " + c,
+      text: `A star map of the sky over ${c} on the day itself, to go with your find-your-way map.` }],
   };
   return (table[prod] || []).filter(Boolean)[0] || null;
 }
@@ -393,9 +442,9 @@ export default {
     }
     if (req.method === "GET" && p === "/privacy") return page("Privacy & terms", `<h1>Privacy &amp; terms</h1>
 <p><b>Who we are.</b> This service is run by Moodly Sverige, a Swedish non-profit association (org.nr 802556-3845), Vaxholm, Sweden. Surplus funds support work for children's well-being.</p>
-<p><b>What we collect.</b> Only what you enter: Etsy order number, the text for your poster, place, date, time, language and – for golf course maps – the course, hole and player name. We use it only to create and deliver your file (star map, eclipse guide, sky calendar, map, golf course map or Moon phase poster).</p>
+<p><b>What we collect.</b> Only what you enter: Etsy order number, the text for your poster, place(s), date, time, language and – for golf course maps – the course, hole and player name. We use it only to create and deliver your file (star map, eclipse guide, sky calendar, map, find-your-way map, golf course map or Moon phase poster).</p>
 <p><b>How long.</b> Everything, including your file, is deleted automatically after 90 days.</p>
-<p><b>Sharing.</b> We never sell or share your details. They are processed by our hosting providers (Cloudflare, GitHub) only to run the service.</p>
+<p><b>Sharing.</b> We never sell or share your details. They are processed by our hosting providers (Cloudflare, GitHub) only to run the service. For a physical print (poster, framed print or canvas), your print file and delivery address are also shared with our print partner Gelato, who prints and ships the item directly to you.</p>
 <p><b>Your rights.</b> You can ask us to delete your data earlier or ask what we store, via the contact address below or Etsy messages.</p>
 <p><b>Terms.</b> The star map is calculated from astronomical data for the place and time you enter. Please check your details before submitting; you can resubmit up to three times per order.</p>`);
 
@@ -422,6 +471,7 @@ export default {
         await env.JOBS.put(`job:${id}`, JSON.stringify(job), { expirationTtl: TTL });
         await env.JOBS.put(`pending:${id}`, "1", { expirationTtl: TTL });
         await env.JOBS.put(`order:${v.order}`, String(used + 1), { expirationTtl: TTL });
+        await env.JOBS.put(`orderjob:${v.order}:${id}`, "1", { expirationTtl: TTL }); // index för tryckkedjan (fysiska annonser)
         return Response.redirect(`${url.origin}/s/${id}`, 303);
       }
       const v = {
@@ -441,6 +491,7 @@ export default {
       await env.JOBS.put(`job:${id}`, JSON.stringify(job), { expirationTtl: TTL });
       await env.JOBS.put(`pending:${id}`, "1", { expirationTtl: TTL });
       await env.JOBS.put(`order:${v.order}`, String(used + 1), { expirationTtl: TTL });
+      await env.JOBS.put(`orderjob:${v.order}:${id}`, "1", { expirationTtl: TTL }); // index för tryckkedjan (fysiska annonser)
       return Response.redirect(`${url.origin}/s/${id}`, 303);
     }
 
@@ -470,9 +521,38 @@ export default {
       return new Response(pdf, { headers: { "content-type": "application/pdf", "content-disposition": `attachment; filename="${fname}"` } });
     }
 
+    // Tryckkedjans osynliga fil-URL (Gelato hämtar filen härifrån) - oförutsägbar token, ingen autentisering
+    // (Gelato skickar ingen Bearer-token), men noindex och ingen lista över tokens finns.
+    if (req.method === "GET" && (m = p.match(/^\/t\/([0-9a-f]{32})\.pdf$/))) {
+      const pdf = await env.JOBS.get(`tryck:${m[1]}`, "arrayBuffer");
+      if (!pdf) return new Response("Not found", { status: 404 });
+      return new Response(pdf, { headers: { "content-type": "application/pdf", "cache-control": "private, no-store", "x-robots-tag": "noindex" } });
+    }
+
     // --- API för tillverkaren (GitHub Actions) ---
     if (p.startsWith("/api/")) {
       if (!(await authed(req, env))) return new Response("unauthorized", { status: 401 });
+      // Tryckkedjan (fysiska annonser, tryck/kallor.py): jobb kopplade till ett Etsy-ordernummer.
+      if (req.method === "GET" && (m = p.match(/^\/api\/order\/(\d{6,14})$/))) {
+        const list = await env.JOBS.list({ prefix: `orderjob:${m[1]}:`, limit: 20 });
+        const jobs = [];
+        for (const k of list.keys) {
+          const j = await env.JOBS.get(`job:${k.name.split(":")[2]}`);
+          if (j) jobs.push(JSON.parse(j));
+        }
+        jobs.sort((a, b) => (a.created < b.created ? -1 : 1));
+        return Response.json({ jobs });
+      }
+      // Tryckkedjan: lagrar den godkända tryckfilen och ger tillbaka en osynlig länk (/t/<token>.pdf) som Gelato hämtar.
+      if (req.method === "PUT" && (m = p.match(/^\/api\/tryckfil\/(etsy-\d+-\d+)$/))) {
+        const body = await req.arrayBuffer();
+        if (body.byteLength > 24 * 1024 * 1024) return new Response("too large", { status: 413 }); // KV-gräns 25 MiB
+        const head = new TextDecoder().decode(body.slice(0, 5));
+        if (head !== "%PDF-") return new Response("not a pdf", { status: 400 });
+        const token = [...crypto.getRandomValues(new Uint8Array(16))].map((b) => b.toString(16).padStart(2, "0")).join("");
+        await env.JOBS.put(`tryck:${token}`, body, { expirationTtl: 60 * 60 * 24 * 60, metadata: { ref: m[1] } }); // 60 dagar
+        return Response.json({ url: `${url.origin}/t/${token}.pdf` });
+      }
       if (req.method === "GET" && p === "/api/queue") {
         const list = await env.JOBS.list({ prefix: "pending:", limit: 100 });
         const jobs = [];
