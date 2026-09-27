@@ -3,3 +3,12 @@ test_leverans.pdf
 __pycache__/
 worker/node_modules/
 worker/.wrangler/
+fulfil/ut/
+fulfil/ut_stiltest.log
+fulfil/data/cache/
+worker/.dev.vars
+fulfil/data/lm/cache/
+fulfil/data/lm/index/
+fulfil/data/nasa/*.js
+fulfil/data/nasa/*.html
+fulfil/verktyg/nasa_jsex_referens.js

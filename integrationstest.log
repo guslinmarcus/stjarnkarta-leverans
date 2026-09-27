@@ -1,0 +1,4 @@
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Marcus Guslin\AppData\Local\Programs\Python\Python312\Lib\multiprocessing\pool.py", line 774, in get
+    raise self._value
+subprocess.CalledProcessError: Command '['C:\\Users\\Marcus Guslin\\AppData\\Local\\Programs\\Python\\Python312\\python.exe', 'C:\\Users\\Marcus Guslin\\Desktop\\Claude\\agentbutik\\leverans\\fulfil\\stjarnkarta.py', 'C:\\Users\\MARCUS~1\\AppData\\Local\\Temp\\tmp42y2yiit\\order.json']' returned non-zero exit status 3221225794.

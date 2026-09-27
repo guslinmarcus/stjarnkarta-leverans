@@ -1,0 +1,28 @@
+{
+ "source": "https://eclipse.gsfc.nasa.gov/LEdecade/LEdecade2021.html",
+ "credit": "Eclipse Predictions by Fred Espenak, NASA's GSFC",
+ "note": "Tidpunkt för största förmörkelse i TD (dynamisk tid).",
+ "formorkelser": [
+  {
+   "datum": "2027-02-20",
+   "max_td": "23:14:06",
+   "typ": "penumbral",
+   "saros": 143,
+   "umbral_mag": -0.057
+  },
+  {
+   "datum": "2027-07-18",
+   "max_td": "16:04:09",
+   "typ": "penumbral",
+   "saros": 110,
+   "umbral_mag": -1.068
+  },
+  {
+   "datum": "2027-08-17",
+   "max_td": "07:14:59",
+   "typ": "penumbral",
+   "saros": 148,
+   "umbral_mag": -0.525
+  }
+ ]
+}

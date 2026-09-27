@@ -1,6 +1,10 @@
 """Kvalitetsgrind för stjärnkartan. Oberoende av generatorn: egen astronomi (Meeus),
 läser den färdiga PDF:en (text, typsnitt, mått) och rastrerar den i 300 dpi.
 
+Gäller alla stilar (midnatt, minimal, akvarell, hjarta, manfas, barnrum). Bildkontrollerna är
+färgbaserade: stjärnorna letas upp i RGB-rastret med stilens stjärnfärg, kontrasten mäts i rastret (WCAG),
+hjärtformen och månfas-raden kontrolleras med egna formler.
+
 Körning: python kvalitetsgrind.py ut/<id>_meta.json  -> ut/<id>_qc.json, exitkod 0 = GODKÄND
 """
 import hashlib, json, math, os, subprocess, sys, tempfile, time
@@ -11,7 +15,61 @@ import fitz  # PyMuPDF
 import numpy as np
 
 A3 = (841.89, 1190.55)  # pt
+MM = 72 / 25.4
 ROOT = Path(__file__).parent
+KANDA_STILAR = {"midnatt", "minimal", "akvarell", "hjarta", "manfas", "barnrum"}
+
+
+def rel_lum(rgb):
+    def ch(v):
+        v = v / 255
+        return v / 12.92 if v <= 0.03928 else ((v + 0.055) / 1.055) ** 2.4
+    r, g, b = rgb
+    return 0.2126 * ch(r) + 0.7152 * ch(g) + 0.0722 * ch(b)
+
+
+def contrast(a, b):
+    la, lb = sorted([rel_lum(a), rel_lum(b)], reverse=True)
+    return (la + 0.05) / (lb + 0.05)
+
+
+def stereo(alt, az, R):
+    """Egen stereografisk projektion (zenit i mitten, horisont på R, norr upp, öster vänster)."""
+    r = R * math.tan(math.radians(90 - alt) / 2)
+    return -r * math.sin(math.radians(az)), r * math.cos(math.radians(az))
+
+
+def heart_poly(shape, n=720):
+    pts = []
+    for i in range(n):
+        t = 2 * math.pi * i / n
+        x = 16 * math.sin(t) ** 3
+        y = 13 * math.cos(t) - 5 * math.cos(2 * t) - 2 * math.cos(3 * t) - math.cos(4 * t)
+        pts.append((x * shape["scale"], y * shape["scale"] + shape["oy"]))
+    return pts
+
+
+def pip(x, y, poly):
+    inside = False; j = len(poly) - 1
+    for i in range(len(poly)):
+        (xi, yi), (xj, yj) = poly[i], poly[j]
+        if (yi > y) != (yj > y) and x < (xj - xi) * (y - yi) / (yj - yi) + xi:
+            inside = not inside
+        j = i
+    return inside
+
+
+_CMAPS = {}
+
+
+def font_cmaps():
+    """PostScript-namn -> teckentabell, läst direkt ur typsnittsfilerna (fontTools, oberoende av reportlab)."""
+    if not _CMAPS:
+        from fontTools.ttLib import TTFont
+        for f in (ROOT / "fonts").glob("*.ttf"):
+            tt = TTFont(str(f), lazy=True)
+            _CMAPS[tt["name"].getDebugName(6)] = set(tt.getBestCmap())
+    return _CMAPS
 
 
 def jd_utc(iso):
@@ -75,6 +133,36 @@ def run(meta_path):
     n = meta["stars_plotted"]
     chk("antal_stjarnor", 900 < n < 1900, f"{n} stjärnor ritade")
 
+    st = meta.get("style") or {"name": "midnatt", "shape": {"type": "circle"}, "colors": {
+        "star": (1, 0.98, 0.93), "text": (0.96, 0.93, 0.85)}, "inner_margin_pt": 28.3}
+    chk("stil_kand", st["name"] in KANDA_STILAR, st["name"])
+    cx, cy, R = meta["geometry_pt"]
+    shape = st["shape"]
+    hpoly = heart_poly(shape) if shape["type"] == "heart" else None
+    # 4b. Oberoende projektion: egen alt/az (Meeus) + egen stereografisk projektion -> sidposition
+    perr, outside = [], 0
+    for s in meta["check_stars"]:
+        a, z = altaz_meeus(s["ra_h"], s["dec"], o["lat"], o["lon"], jd)
+        px, py = stereo(a, z, R)
+        perr.append(math.hypot(cx + px - s["page_x_pt"], cy + py - s["page_y_pt"]) / MM)
+        inside = math.hypot(px, py) < R if hpoly is None else pip(px, py, hpoly)
+        outside += not inside
+    chk("projektion_sidposition", bool(perr) and max(perr) < 1.0, f"max {max(perr or [0]):.3f} mm (gräns 1 mm)")
+    chk("kontrollstjarnor_i_himmelsytan", len(meta["check_stars"]) >= 10 and outside == 0,
+        f"{len(meta['check_stars'])} kontrollstjärnor, {outside} utanför {shape['type']}")
+    # 4c. Månfas-raden (stil manfas): varje måne mot Meeus, tilltagande/avtagande mot Meeus
+    mrow = meta.get("moon_row")
+    if mrow:
+        bad = []
+        for md in mrow:
+            j = jd_utc(md["utc"])
+            mi = moon_illum_meeus(j)
+            wax = moon_illum_meeus(j + 0.25) > moon_illum_meeus(j - 0.25)
+            if abs(mi - md["frac"]) > 0.02 or (wax != md["waxing"] and 0.02 < mi < 0.98):
+                bad.append((md["day"], round(mi, 3), round(md["frac"], 3), wax, md["waxing"]))
+        chk("manfas_rad_astronomi", len(mrow) == 7 and not bad, f"{bad}" if bad else "7 månar stämmer mot Meeus")
+    cmaps = font_cmaps()
+
     for lang, pdf in meta["files"].items():
         doc = fitz.open(pdf); page = doc[0]
         # 5. Format
@@ -84,48 +172,109 @@ def run(meta_path):
         # 6. Typsnitt inbäddade
         fonts = page.get_fonts(full=True)
         emb = all(f[1] not in ("n/a", "") for f in fonts)  # ext n/a = ej inbäddat
-        chk(f"{lang}_typsnitt_inbaddade", emb and len(fonts) >= 2, f"{[f[3] for f in fonts]}")
+        chk(f"{lang}_typsnitt_inbaddade", emb and len(fonts) >= 1, f"{[f[3] for f in fonts]}")
         # 7. Texten finns exakt och utan trasiga tecken
         txt = page.get_text()
         t = meta["texts"][lang]
-        need = [o["name"], t["title"], t["date"], t["coord"]]
+        shown = t.get("name", o["name"])
+        need = [shown, t["title"], t["date"], t["coord"]]
         missing = [s for s in need if s not in txt]
-        chk(f"{lang}_text_komplett", not missing, f"saknas: {missing}" if missing else "namn, titel, datum, koordinater")
+        chk(f"{lang}_text_komplett", not missing and shown.casefold() == o["name"].casefold(),
+            f"saknas: {missing}" if missing else "namn, titel, datum, koordinater")
         chk(f"{lang}_inga_trasiga_tecken", "�" not in txt and "■" not in txt, "U+FFFD/■ ej funnet")
+        # 7b. Varje tecken finns i det typsnitt det är satt med (annars blir det tomrutor i trycket)
+        spans = [sp for b in page.get_text("dict")["blocks"] for l in b.get("lines", []) for sp in l["spans"]]
+        miss = set()
+        for sp in spans:
+            ps = sp["font"].split("+")[-1]
+            cm = cmaps.get(ps)
+            if cm is None:
+                miss.add(("okänt typsnitt", ps)); continue
+            for ch in sp["text"]:
+                if not ch.isspace() and ord(ch) not in cm:
+                    miss.add((ps, ch))
+        chk(f"{lang}_glyfer_finns", not miss, f"{sorted(miss)[:5]}" if miss else "alla tecken finns i sina typsnitt")
         # 8. Licens/attribution på produkten
         credit_ok = all(k in txt for k in ["Yale Bright Star", "Olaf Frohn", "BSD", "DE421"])
         chk(f"{lang}_attribution", credit_ok, "Yale BSC, DE421, d3-celestial/BSD")
-        # 9. Layout: all text inom 10 mm marginal, ingen text inuti himmelsskivan
-        cx, cy, R = meta["geometry_pt"]; cy_top = h - cy
+        # 9. Layout: all text innanför ramens marginal, ingen text inuti himmelsskivan eller över månarna
+        cy_top = h - cy; mg = st.get("inner_margin_pt", 28.3) - 0.5
         bad = []
         for b in page.get_text("dict")["blocks"]:
             for l in b.get("lines", []):
                 x0, y0, x1, y1 = l["bbox"]
                 s = "".join(sp["text"] for sp in l["spans"])
-                if x0 < 28.3 or x1 > w - 28.3 or y0 < 28.3 or y1 > h - 28.3:
+                if x0 < mg or x1 > w - mg or y0 < mg or y1 > h - mg:
                     bad.append(("marginal", s[:30]))
-                # hörnen på textraden får inte ligga inne i cirkeln
                 for (px, py) in [(x0, y0), (x1, y0), (x0, y1), (x1, y1)]:
                     if math.hypot(px - cx, py - cy_top) < R - 1:
                         bad.append(("i_cirkeln", s[:30])); break
+                for md in (mrow or []):
+                    my_top = h - md["y_pt"]; r = md["r_pt"] + 1.6 * MM
+                    if x0 < md["x_pt"] + r and x1 > md["x_pt"] - r and y0 < my_top + r and y1 > my_top - r:
+                        bad.append(("over_manen", s[:30])); break
         chk(f"{lang}_layout", not bad, f"{bad[:3]}" if bad else "ok")
         # 10. Språkkontroll: månadsnamn och inga ord från andra språks mallar
         foreign = {"sv": ["Sternenhimmel", "night sky"], "en": ["Stjärnhimlen", "Sternenhimmel"],
                    "de": ["Stjärnhimlen", "night sky"]}[lang]
         chk(f"{lang}_sprak", not any(f in txt for f in foreign), "inga främmande mallord")
-        # 11. Raster 300 dpi: stjärnorna syns där beräkningen säger
-        pix = page.get_pixmap(dpi=300, colorspace=fitz.csGRAY)
-        img = np.frombuffer(pix.samples, dtype=np.uint8).reshape(pix.height, pix.width)
+        # 11. Raster 300 dpi i färg: stjärnorna syns där beräkningen säger, i stilens stjärnfärg
+        pix = page.get_pixmap(dpi=300, colorspace=fitz.csRGB)
+        img = np.frombuffer(pix.samples, dtype=np.uint8).reshape(pix.height, pix.width, 3).astype(np.int16)
         sc = 300 / 72; hits = 0
+        star = np.array([v * 255 for v in st["colors"]["star"]])
         for s in meta["check_stars"]:
             X = int(s["page_x_pt"] * sc); Y = int((h - s["page_y_pt"]) * sc)
-            if img[max(0, Y - 3):Y + 4, max(0, X - 3):X + 4].max() > 180:
+            win = img[max(0, Y - 3):Y + 4, max(0, X - 3):X + 4].reshape(-1, 3)
+            if np.sqrt(((win - star) ** 2).sum(1)).min() < 70:
                 hits += 1
         chk(f"{lang}_raster_stjarnor_pa_plats", hits == len(meta["check_stars"]),
             f"{hits}/{len(meta['check_stars'])} ljusa stjärnor funna i 300 dpi-bilden")
         chk(f"{lang}_raster_storlek", (pix.width, pix.height) == (3508, 4961), f"{pix.width}×{pix.height} px")
-        bright = (img > 128).mean()
-        chk(f"{lang}_ej_tom", 0.001 < bright < 0.2, f"andel ljusa pixlar {bright:.4f}")
+        # himlens mitt i rastret (halva radien – ligger alltid i himmelsytan, även för hjärtat)
+        Xc, Yc, Rp = cx * sc, (h - cy) * sc, R * sc
+        yy, xx = np.mgrid[0:pix.height:4, 0:pix.width:4]
+        disk = np.hypot(xx - Xc, yy - Yc) < Rp * 0.5
+        sky_px = img[0:pix.height:4, 0:pix.width:4][disk]
+        dist_star = np.sqrt(((sky_px - star) ** 2).sum(1))
+        frac = float((dist_star < 40).mean())
+        chk(f"{lang}_ej_tom", 0.0005 < frac < 0.2, f"andel stjärnpixlar i himlens mitt {frac:.4f}")
+        # 11b. Kontrast (WCAG): text mot papper >= 4,5; stjärnor mot himlens värsta 10 % >= 3
+        page_rgb = img[int(h / 2 * sc), int(5 * MM * sc)]
+        text_rgb = [v * 255 for v in st["colors"]["text"]]
+        cr_text = contrast(text_rgb, page_rgb)
+        nonstar = sky_px[dist_star >= 40]
+        lum = np.array([rel_lum(p) for p in nonstar[:: max(1, len(nonstar) // 4000)]])
+        ls = rel_lum(star)
+        worst = float(np.percentile(lum, 90 if ls > 0.5 else 10))
+        cr_star = (max(ls, worst) + 0.05) / (min(ls, worst) + 0.05)
+        chk(f"{lang}_kontrast", cr_text >= 4.5 and cr_star >= 3.0, f"text {cr_text:.1f}:1, stjärnor {cr_star:.1f}:1")
+        # 11c. Formen: hjärtat klipper verkligen himlen (punkter i cirkeln men utanför hjärtat = papper)
+        if hpoly is not None:
+            probes, badp = 0, 0
+            for ang in range(0, 360, 10):
+                for rr in (0.97, 0.9):
+                    px, py = R * rr * math.cos(math.radians(ang)), R * rr * math.sin(math.radians(ang))
+                    if any(pip(px + dx, py + dy, hpoly) for dx in (-6, 0, 6) for dy in (-6, 0, 6)):
+                        continue
+                    probes += 1
+                    v = img[int((h - (cy + py)) * sc), int((cx + px) * sc)]
+                    if np.sqrt(((v - page_rgb) ** 2).sum()) > 30:
+                        badp += 1
+            chk(f"{lang}_hjartform", probes >= 10 and badp == 0, f"{probes} punkter utanför hjärtat, {badp} ej papper")
+        # 11d. Månfas-raden i rastret: belyst andel av varje måne ≈ beräknad
+        if mrow:
+            moon_rgb = np.array([v * 255 for v in st["colors"]["moon"]])
+            errs = []
+            for md in mrow:
+                X, Y, r = md["x_pt"] * sc, (h - md["y_pt"]) * sc, md["r_pt"] * sc * 0.97
+                y0_, y1_, x0_, x1_ = int(Y - r), int(Y + r) + 1, int(X - r), int(X + r) + 1
+                sub = img[y0_:y1_, x0_:x1_]
+                gy, gx = np.mgrid[y0_:y1_, x0_:x1_]
+                inside = np.hypot(gx - X, gy - Y) < r
+                lit = float((np.sqrt(((sub - moon_rgb) ** 2).sum(-1)) < 60)[inside].mean())
+                errs.append(abs(lit - md["frac"]))
+            chk(f"{lang}_manfas_rad_raster", max(errs) < 0.08, f"max avvikelse belyst yta {max(errs):.3f} (gräns 0,08)")
 
     # 12. Determinism/idempotens: generera igen i temp-mapp och jämför hash
     with tempfile.TemporaryDirectory() as td:

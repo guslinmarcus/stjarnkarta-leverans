@@ -1,0 +1,33 @@
+{"id": "h1_ystad", "sprak": ["sv", "en"], "tid_generator_s": 56.0, "tid_grind_s": 20.7, "generatorns_deltider": {"geokodning_s": 0.03, "hamta_och_georeferera_s": 1.45, "varav_ftp_s": 0.0, "osm_s": 0.02, "passning_s": 15.58, "rendera_s": 38.05, "totalt_s": 55.19}, "godkand": true, "antal_grindar": 69, "underkanda": []}
+{"id": "h2_vaxholm", "sprak": ["sv"], "tid_generator_s": 77.5, "tid_grind_s": 21.8, "generatorns_deltider": {"geokodning_s": 0.7, "hamta_och_georeferera_s": 3.16, "varav_ftp_s": 0.0, "osm_s": 0.05, "passning_s": 22.04, "rendera_s": 50.79, "totalt_s": 76.81}, "godkand": true, "antal_grindar": 44, "underkanda": []}
+{"id": "h3_sigtuna", "sprak": ["sv"], "tid_generator_s": 89.6, "tid_grind_s": 22.0, "generatorns_deltider": {"geokodning_s": 0.26, "hamta_och_georeferera_s": 5.32, "varav_ftp_s": 0.0, "osm_s": 0.67, "passning_s": 23.82, "rendera_s": 58.74, "totalt_s": 88.89}, "godkand": true, "antal_grindar": 44, "underkanda": []}
+{"id": "h4_arvika", "sprak": ["sv"], "tid_generator_s": 86.0, "tid_grind_s": 20.4, "generatorns_deltider": {"geokodning_s": 0.0, "hamta_och_georeferera_s": 4.07, "varav_ftp_s": 0.0, "osm_s": 0.08, "passning_s": 23.3, "rendera_s": 57.81, "totalt_s": 85.34}, "godkand": true, "antal_grindar": 42, "underkanda": []}
+{"id": "h5_hagersten", "sprak": ["en"], "tid_generator_s": 88.0, "tid_grind_s": 23.5, "generatorns_deltider": {"geokodning_s": 0.86, "hamta_och_georeferera_s": 1.63, "varav_ftp_s": 0.0, "osm_s": 0.84, "passning_s": 24.74, "rendera_s": 59.16, "totalt_s": 87.32}, "godkand": true, "antal_grindar": 43, "underkanda": []}
+{"felinjektion": "fel_blad", "falld": true, "av": ["hek_alla_blad_med"], "gen_fel": null}
+{"felinjektion": "forskjutning", "falld": true, "av": ["passning_hek_deklarerad"], "gen_fel": null}
+{"felinjektion": "lag_upplosning", "falld": true, "av": ["sv_gsk_kall_upplosning"], "gen_fel": null}
+{"felinjektion": "saknad_kallhanvisning", "falld": true, "av": ["sv_kallhanvisning"], "gen_fel": null}
+{"felinjektion": "fel_artal", "falld": true, "av": ["sv_hek_artal_tryckt"], "gen_fel": null}
+{"felinjektion": "tom_panel", "falld": true, "av": ["sv_ek_panel_ej_tom"], "gen_fel": null}
+{"felinjektion": "fel_adress", "falld": true, "av": ["adress_mot_osm_adresser"], "gen_fel": null}
+historisk {'datum': '2026-09-27T12:30:42', 'produkt': 'historisk', 'godkanda': 5, 'antal': 5, 'snitt_generator_s': 79.4, 'snitt_grind_s': 21.7, 'fallda': 7, 'injektioner': 7}
+{"id": "s1_stockholm", "sprak": ["en"], "tid_generator_s": 2.6, "tid_grind_s": 1.7, "generatorns_deltider": {"osm_s": 0.14, "rendera_s": 1.27, "totalt_s": 2.15}, "godkand": true, "antal_grindar": 9, "underkanda": []}
+{"id": "s2_goteborg", "sprak": ["sv"], "tid_generator_s": 1.4, "tid_grind_s": 1.6, "generatorns_deltider": {"osm_s": 0.09, "rendera_s": 0.7, "totalt_s": 0.97}, "godkand": true, "antal_grindar": 9, "underkanda": []}
+{"id": "s3_visby", "sprak": ["sv"], "tid_generator_s": 0.6, "tid_grind_s": 1.3, "generatorns_deltider": {"osm_s": 0.01, "rendera_s": 0.06, "totalt_s": 0.17}, "godkand": true, "antal_grindar": 9, "underkanda": []}
+{"id": "s4_lisboa", "sprak": ["en"], "tid_generator_s": 1.1, "tid_grind_s": 1.5, "generatorns_deltider": {"osm_s": 0.07, "rendera_s": 0.47, "totalt_s": 0.67}, "godkand": true, "antal_grindar": 9, "underkanda": []}
+{"id": "s5_vaxholm", "sprak": ["en"], "tid_generator_s": 0.6, "tid_grind_s": 1.2, "generatorns_deltider": {"osm_s": 0.01, "rendera_s": 0.05, "totalt_s": 0.15}, "godkand": true, "antal_grindar": 9, "underkanda": []}
+{"felinjektion": "saknad_attribution", "falld": true, "av": ["en_attribution"], "gen_fel": null}
+{"felinjektion": "tomt_omrade", "falld": true, "av": ["en_vagar_pa_ratt_plats", "en_inga_tomma_rutor"], "gen_fel": null}
+{"felinjektion": "fel_centrum", "falld": true, "av": ["en_vagar_pa_ratt_plats", "en_inga_tomma_rutor"], "gen_fel": null}
+{"felinjektion": "lag_upplosning", "falld": true, "av": ["en_upplosning"], "gen_fel": null}
+stadskarta {'datum': '2026-09-27T12:46:56', 'produkt': 'stadskarta', 'godkanda': 5, 'antal': 5, 'snitt_generator_s': 1.3, 'snitt_grind_s': 1.5, 'fallda': 4, 'injektioner': 4}
+{"id": "k1_europa", "sprak": ["en", "sv"], "tid_generator_s": 0.8, "tid_grind_s": 1.0, "generatorns_deltider": {"totalt_s": 0.6}, "godkand": true, "antal_grindar": 20, "underkanda": []}
+{"id": "k2_varlden", "sprak": ["sv"], "tid_generator_s": 1.0, "tid_grind_s": 1.2, "generatorns_deltider": {"totalt_s": 0.71}, "godkand": true, "antal_grindar": 11, "underkanda": []}
+{"id": "k3_nara", "sprak": ["en"], "tid_generator_s": 0.4, "tid_grind_s": 0.7, "generatorns_deltider": {"totalt_s": 0.2}, "godkand": true, "antal_grindar": 11, "underkanda": []}
+{"id": "k4_fem", "sprak": ["de"], "tid_generator_s": 0.5, "tid_grind_s": 0.7, "generatorns_deltider": {"totalt_s": 0.24}, "godkand": true, "antal_grindar": 11, "underkanda": []}
+{"id": "k5_soder", "sprak": ["en"], "tid_generator_s": 0.7, "tid_grind_s": 1.0, "generatorns_deltider": {"totalt_s": 0.5}, "godkand": true, "antal_grindar": 11, "underkanda": []}
+{"felinjektion": "fel_koordinat", "falld": true, "av": ["en_markorer_pa_ratt_koordinat"], "gen_fel": null}
+{"felinjektion": "fel_ordning", "falld": true, "av": ["en_linje_i_datumordning"], "gen_fel": null}
+{"felinjektion": "fel_avstand", "falld": true, "av": ["en_avstand_mot_vincenty", "en_totalavstand"], "gen_fel": null}
+{"felinjektion": "saknad_kalla", "falld": true, "av": ["en_kallhanvisning"], "gen_fel": null}
+karlekskarta {'datum': '2026-09-27T12:47:26', 'produkt': 'karlekskarta', 'godkanda': 5, 'antal': 5, 'snitt_generator_s': 0.7, 'snitt_grind_s': 0.9, 'fallda': 4, 'injektioner': 4}

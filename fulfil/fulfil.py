@@ -1,18 +1,46 @@
-"""Hämtar väntande beställningar från leveransportalen, tillverkar stjärnkartan, kör kvalitetsgrinden
+"""Hämtar väntande beställningar från leveransportalen, tillverkar produkten, kör dess kvalitetsgrind
 och laddar upp PDF:en. Körs av GitHub Actions (schemalagt) eller lokalt:
 
     PORTAL_URL=https://... FULFIL_SECRET=... python fulfil.py
 
 Ingen människa i loopen: en order som inte klarar grinden levereras aldrig, den markeras som misslyckad
 med ett begripligt meddelande till köparen (t.ex. "orten hittades inte – kontrollera stavningen").
+
+Jobbets fält "product" väljer generator + grind (saknas fältet = stjärnkarta, som före 2026-09-27):
+    stjarnkarta      stjarnkarta.py      + kvalitetsgrind.py        (text, ort, land, datum, tid, språk en/sv/de)
+    formorkelse      formorkelse.py      + grind_formorkelse.py     (text, ort, land, språk en/sv/de/es)
+    himmelskalender  himmelskalender.py  + grind_himmelskalender.py (text, ort, land, språk en/sv/de/es)
+    historisk        historisk.py        + grind_historisk.py       (text, adress, ort i Sverige, språk sv/en)
+    stadskarta       stadskarta.py       + grind_stadskarta.py      (text, ort, land, stil, radie, språk en/sv/de)
+    karlekskarta     karlekskarta.py     + grind_karlekskarta.py    (text, 2–5 platser med datum/etikett, stil, språk en/sv/de)
+
+Kartprodukterna hämtar data över nätet (Lantmäteriets FTP, Overpass, Nominatim). Ett tillfälligt nätfel
+lämnar jobbet i kön (nytt försök nästa körning, högst ett dygn). Körningen har en tidsbudget så att
+GitHub Actions-jobbet (15 min) aldrig avbryts mitt i en order.
 """
-import gzip, json, os, sys, tempfile, unicodedata, urllib.request
+import gzip, json, os, sys, tempfile, time, unicodedata, urllib.request
+from datetime import datetime, timezone
 from pathlib import Path
 
 ROOT = Path(__file__).parent
+sys.path.insert(0, str(ROOT))
 PORTAL = os.environ.get("PORTAL_URL", "").rstrip("/")
 SECRET = os.environ.get("FULFIL_SECRET", "")
 MAX_PER_RUN = 40
+PRODUCTS = {  # produkt: (generator, grind, tillåtna språk)
+    "stjarnkarta": ("stjarnkarta", "kvalitetsgrind", ("en", "sv", "de")),
+    "formorkelse": ("formorkelse", "grind_formorkelse", ("en", "sv", "de", "es")),
+    "himmelskalender": ("himmelskalender", "grind_himmelskalender", ("en", "sv", "de", "es")),
+    "historisk": ("historisk", "grind_historisk", ("sv", "en")),
+    "stadskarta": ("stadskarta", "grind_stadskarta", ("en", "sv", "de")),
+    "karlekskarta": ("karlekskarta", "grind_karlekskarta", ("en", "sv", "de")),
+}
+RUN_BUDGET_S = int(os.environ.get("FULFIL_BUDGET_S", str(11 * 60)))
+EST_S = {"historisk": 900, "stadskarta": 420}  # uppskattad längsta tid per order (övriga ≈ 60 s)
+TEMPORARY = ("overpass misslyckades", "FTP-hämtning misslyckades")
+# Delning mellan arbetsflöden: FULFIL_ONLY=historisk (eget jobb, 45 min, cache) och FULFIL_SKIP=historisk (ordinarie 15-min-jobb)
+ONLY = {x for x in os.environ.get("FULFIL_ONLY", "").split(",") if x}
+SKIP = {x for x in os.environ.get("FULFIL_SKIP", "").split(",") if x}
 
 try:
     import truststore; truststore.inject_into_ssl()  # behövs på Marcus dator (SSL), ofarligt i CI
@@ -73,25 +101,73 @@ def api(method, path, data=None, ctype="application/json"):
 
 
 def make_order(job):
-    g = geocode(job["city"], job.get("country", ""))
+    product = job.get("product") or "stjarnkarta"
+    if product not in PRODUCTS:
+        return None, "internal"
+    langs = PRODUCTS[product][2]
+    lang = job.get("lang") if job.get("lang") in langs else langs[0] if product == "historisk" else "en"
+    if product == "karlekskarta":
+        places = []
+        _, lander = load_geo()
+        for p in (job.get("places") or [])[:5]:
+            if norm(p.get("country", "")) not in lander:  # okänt land = fel ort hellre än en gissning
+                return None, "city_not_found"
+            g = geocode(p.get("city", ""), p.get("country", ""))
+            if not g:
+                return None, "city_not_found"
+            places.append({"place": p["city"].strip()[:40], "country": p.get("country", "").strip()[:40], "cc": g[3],
+                           "date": p["date"], "label": (p.get("label") or "").strip()[:40],
+                           "lat": round(g[1], 4), "lon": round(g[2], 4)})
+        if len(places) < 2:
+            return None, "places_count"
+        return {"id": job["id"], "product": product, "text": (job.get("text") or "").strip()[:40], "places": places,
+                "style": job.get("style") or "ljus", "place": places[0]["place"], "languages": [lang]}, None
+    g = geocode(job["city"], "SE" if product == "historisk" else job.get("country", ""))
     if not g:
         return None, "city_not_found"
     name, lat, lon, cc, pop, tz = g
-    hh, mm = (job.get("time") or "21:00").split(":")[:2]
-    order = {"id": job["id"], "name": job["text"].strip()[:60], "place": job["city"].strip()[:40],
-             "lat": round(lat, 4), "lon": round(lon, 4), "timezone": tz,
-             "datetime_local": f"{job['date']}T{int(hh):02d}:{int(mm):02d}", "languages": [job.get("lang", "en")]}
+    if product == "historisk":
+        return {"id": job["id"], "product": product, "text": (job.get("text") or "").strip()[:60],
+                "address": (job.get("address") or "").strip()[:80], "place": job["city"].strip()[:40],
+                "lat": round(lat, 4), "lon": round(lon, 4), "pop": pop, "timezone": tz, "languages": [lang]}, None
+    if product == "stadskarta":
+        try:
+            r = float(job.get("radius_km") or 3)
+        except ValueError:
+            r = 3.0
+        return {"id": job["id"], "product": product, "text": (job.get("text") or "").strip()[:40],
+                "place": job["city"].strip()[:40], "country": (job.get("country") or "").strip()[:40], "cc": cc,
+                "lat": round(lat, 4), "lon": round(lon, 4), "timezone": tz, "style": job.get("style") or "klassisk",
+                "radius_km": min(max(r, 1.0), 8.0), "languages": [lang]}, None
+    if product == "stjarnkarta":
+        hh, mm = (job.get("time") or "21:00").split(":")[:2]
+        order = {"id": job["id"], "name": job["text"].strip()[:60], "place": job["city"].strip()[:40],
+                 "lat": round(lat, 4), "lon": round(lon, 4), "timezone": tz,
+                 "datetime_local": f"{job['date']}T{int(hh):02d}:{int(mm):02d}", "languages": [lang]}
+        for k in ("style", "palette", "frame", "font"):  # stjärnkartans stilval från portalen (tomt = standard)
+            if job.get(k):
+                order[k] = job[k]
+    else:
+        order = {"id": job["id"], "product": product, "text": (job.get("text") or "").strip()[:60],
+                 "place": job["city"].strip()[:40], "lat": round(lat, 4), "lon": round(lon, 4), "timezone": tz,
+                 "languages": [lang]}
     return order, None
 
 
 def produce(order, workdir):
+    """Kör generator + grind för orderns produkt. Returnerar (grindresultat, pdf) eller (None, felorsak)."""
+    import importlib
     os.environ["STJARN_OUT"] = str(workdir)
     sys.path.insert(0, str(ROOT))
-    import stjarnkarta, kvalitetsgrind
+    gen_name, gate_name, _ = PRODUCTS[order.get("product", "stjarnkarta")]
+    gen, gate = importlib.import_module(gen_name), importlib.import_module(gate_name)
     op = Path(workdir) / f"{order['id']}.json"
     op.write_text(json.dumps(order, ensure_ascii=False), encoding="utf-8")
-    stjarnkarta.generate(op)
-    r = kvalitetsgrind.run(Path(workdir) / f"{order['id']}_meta.json")
+    try:
+        gen.generate(op)
+    except SystemExit as e:  # generatorn vägrar med en begriplig orsak (t.ex. förmörkelsen syns inte från orten)
+        return None, str(e.code or "internal")
+    r = gate.run(Path(workdir) / f"{order['id']}_meta.json")
     pdf = Path(workdir) / f"{order['id']}_{order['languages'][0]}.pdf"
     return r, pdf
 
@@ -99,22 +175,38 @@ def produce(order, workdir):
 def main():
     if not PORTAL or not SECRET:
         sys.exit("PORTAL_URL och FULFIL_SECRET måste vara satta")
+    t_start = time.time()
     jobs = api("GET", "/api/queue").get("jobs", [])[:MAX_PER_RUN]
     print(f"{len(jobs)} väntande")
     for job in jobs:
+        prod = job.get("product") or "stjarnkarta"
+        if (ONLY and prod not in ONLY) or prod in SKIP:
+            continue
+        left = RUN_BUDGET_S - (time.time() - t_start)
+        if left < EST_S.get(job.get("product") or "", 60):
+            print(job["id"], "väntar till nästa körning (tidsbudget)"); continue
         try:
             order, err = make_order(job)
             if err:
                 api("POST", f"/api/fail/{job['id']}", {"reason": err}); print(job["id"], err); continue
             with tempfile.TemporaryDirectory() as wd:
                 r, pdf = produce(order, wd)
+                if r is None:
+                    api("POST", f"/api/fail/{job['id']}", {"reason": pdf}); print(job["id"], pdf); continue
                 if not r["godkand"]:
                     api("POST", f"/api/fail/{job['id']}", {"reason": "quality_gate", "detail": r["underkanda"]})
                     print(job["id"], "grind underkänd"); continue
                 api("POST", f"/api/done/{job['id']}?place={urllib.request.quote(order['place'])}",
                     pdf.read_bytes(), "application/pdf")
-                print(job["id"], "levererad")
+                print(job["id"], order.get("product", "stjarnkarta"), "levererad")
         except Exception as e:  # en trasig order får aldrig stoppa de andra
+            if isinstance(e, RuntimeError) and str(e).startswith(TEMPORARY):
+                try:
+                    age_h = (datetime.now(timezone.utc) - datetime.fromisoformat(job["created"].replace("Z", "+00:00"))).total_seconds() / 3600
+                except Exception:
+                    age_h = 0
+                if age_h < 24:
+                    print(job.get("id"), "tillfälligt nätfel – nytt försök nästa körning:", str(e)[:160]); continue
             print(job.get("id"), "FEL", repr(e))
             try:
                 api("POST", f"/api/fail/{job['id']}", {"reason": "internal"})

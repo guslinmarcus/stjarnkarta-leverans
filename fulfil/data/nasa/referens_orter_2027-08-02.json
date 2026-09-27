@@ -1,0 +1,410 @@
+{
+ "source": "NASA JSEX (eclipse.gsfc.nasa.gov/JSEX/program.js + SE2001.js), run unchanged in Node v24.14.1",
+ "credit": "Eclipse Predictions by Fred Espenak, NASA's GSFC",
+ "elements_deltaT_s": 76,
+ "generated": "2026-09-27",
+ "note": "Tider i UT (decimala timmar). Ingen refraktion. obscuration = andel av solskivans yta.",
+ "orter": [
+  {
+   "name": "Stockholm",
+   "lat": 59.333333333333336,
+   "lon": 18.05,
+   "alt_m": 44.5,
+   "type": "partial",
+   "c1_ut_h": 8.627601239405895,
+   "max_ut_h": 9.32119407753953,
+   "c4_ut_h": 10.023312849095337,
+   "magnitude": 0.22724627458263771,
+   "obscuration": 0.12786171307115246,
+   "sun_alt_max_deg": 45.00831678940195,
+   "sun_azi_max_deg": 147.20368130018323,
+   "visibility_codes": [
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "name": "Oslo",
+   "lat": 59.916666666666664,
+   "lon": 10.75,
+   "alt_m": 93.9,
+   "type": "partial",
+   "c1_ut_h": 8.52527694356027,
+   "max_ut_h": 9.221660262089184,
+   "c4_ut_h": 9.930734650226372,
+   "magnitude": 0.24025449972766447,
+   "obscuration": 0.13868613663066356,
+   "sun_alt_max_deg": 41.80927909061731,
+   "sun_azi_max_deg": 136.6421726175497,
+   "visibility_codes": [
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "name": "London",
+   "lat": 51.5,
+   "lon": -0.16666666666666666,
+   "alt_m": 45.4,
+   "type": "partial",
+   "c1_ut_h": 8.05768089264774,
+   "max_ut_h": 8.999847821333177,
+   "c4_ut_h": 9.989003388482702,
+   "magnitude": 0.5180417834521446,
+   "obscuration": 0.41919061687037307,
+   "sun_alt_max_deg": 40.17068295233307,
+   "sun_azi_max_deg": 114.80961836842403,
+   "visibility_codes": [
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "name": "Paris",
+   "lat": 48.86666666666667,
+   "lon": 2.3333333333333335,
+   "alt_m": 50,
+   "type": "partial",
+   "c1_ut_h": 8.010041262916276,
+   "max_ut_h": 9.018095298779354,
+   "c4_ut_h": 10.081003249840293,
+   "magnitude": 0.5978380840966833,
+   "obscuration": 0.5123657204861682,
+   "sun_alt_max_deg": 42.89769998397328,
+   "sun_azi_max_deg": 115.498508447044,
+   "visibility_codes": [
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "name": "Berlin",
+   "lat": 52.5,
+   "lon": 13.366666666666667,
+   "alt_m": 0,
+   "type": "partial",
+   "c1_ut_h": 8.28849753258639,
+   "max_ut_h": 9.229154118079446,
+   "c4_ut_h": 10.196993102834941,
+   "magnitude": 0.44779715109858387,
+   "obscuration": 0.3411890661282306,
+   "sun_alt_max_deg": 48.18567712980513,
+   "sun_azi_max_deg": 134.82058973871972,
+   "visibility_codes": [
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "name": "Madrid",
+   "lat": 40.4,
+   "lon": -3.6833333333333336,
+   "alt_m": 666.9,
+   "type": "partial",
+   "c1_ut_h": 7.755876783488131,
+   "max_ut_h": 8.852244791396533,
+   "c4_ut_h": 10.04389855671042,
+   "magnitude": 0.8796860489378296,
+   "obscuration": 0.863699211457983,
+   "sun_alt_max_deg": 39.75535139677881,
+   "sun_azi_max_deg": 100.75156756127745,
+   "visibility_codes": [
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "name": "Sevilla",
+   "lat": 37.38333333333333,
+   "lon": -5.983333333333333,
+   "alt_m": 29.9,
+   "type": "partial",
+   "c1_ut_h": 7.689911083448406,
+   "max_ut_h": 8.78996068363899,
+   "c4_ut_h": 9.997487371322999,
+   "magnitude": 0.9788552204439452,
+   "obscuration": 0.9836960389703677,
+   "sun_alt_max_deg": 37.70400486334845,
+   "sun_azi_max_deg": 96.03050857407209,
+   "visibility_codes": [
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "name": "Barcelona",
+   "lat": 41.38333333333333,
+   "lon": 2.183333333333333,
+   "alt_m": 95.1,
+   "type": "partial",
+   "c1_ut_h": 7.846337354941618,
+   "max_ut_h": 8.973563962172044,
+   "c4_ut_h": 10.185728024929384,
+   "magnitude": 0.8424399763459719,
+   "obscuration": 0.8165688152393187,
+   "sun_alt_max_deg": 45.14012984508062,
+   "sun_azi_max_deg": 107.97930816899941,
+   "visibility_codes": [
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "name": "Lisbon",
+   "lat": 38.71666666666667,
+   "lon": -9.133333333333333,
+   "alt_m": 95.4,
+   "type": "partial",
+   "c1_ut_h": 7.677969154988203,
+   "max_ut_h": 8.745586417656778,
+   "c4_ut_h": 9.915857759866814,
+   "magnitude": 0.9289500585556644,
+   "obscuration": 0.9253774661254894,
+   "sun_alt_max_deg": 34.59034383317044,
+   "sun_azi_max_deg": 94.44683514446206,
+   "visibility_codes": [
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "name": "Rome",
+   "lat": 41.9,
+   "lon": 12.483333333333333,
+   "alt_m": 114.9,
+   "type": "partial",
+   "c1_ut_h": 8.034486942077308,
+   "max_ut_h": 9.210400911131842,
+   "c4_ut_h": 10.444408029938991,
+   "magnitude": 0.7861126299704513,
+   "obscuration": 0.7453167312988357,
+   "sun_alt_max_deg": 54.26833724197738,
+   "sun_azi_max_deg": 123.0283448457667,
+   "visibility_codes": [
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "name": "Athens",
+   "lat": 37.96666666666667,
+   "lon": 23.716666666666665,
+   "alt_m": 107,
+   "type": "partial",
+   "c1_ut_h": 8.277252232349099,
+   "max_ut_h": 9.546035534536323,
+   "c4_ut_h": 10.831598403936765,
+   "magnitude": 0.8160290604325137,
+   "obscuration": 0.7836566867951459,
+   "sun_alt_max_deg": 66.0659288077514,
+   "sun_azi_max_deg": 143.51850030511923,
+   "visibility_codes": [
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "name": "Tunis",
+   "lat": 36.8,
+   "lon": 10.183333333333334,
+   "alt_m": 66.1,
+   "type": "partial",
+   "c1_ut_h": 7.93500925912895,
+   "max_ut_h": 9.165852695004624,
+   "c4_ut_h": 10.476475417225341,
+   "magnitude": 0.9668569797351438,
+   "obscuration": 0.9711203651432698,
+   "sun_alt_max_deg": 54.653297371931394,
+   "sun_azi_max_deg": 113.32171721818622,
+   "visibility_codes": [
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "name": "Cairo",
+   "lat": 30.05,
+   "lon": 31.25,
+   "alt_m": 116.1,
+   "type": "partial",
+   "c1_ut_h": 8.55078968427217,
+   "max_ut_h": 9.928959320250394,
+   "c4_ut_h": 11.268334999873552,
+   "magnitude": 0.9464631573042088,
+   "obscuration": 0.9478049253996778,
+   "sun_alt_max_deg": 77.64746324289,
+   "sun_azi_max_deg": 173.7826453201784,
+   "visibility_codes": [
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "name": "Cadiz",
+   "lat": 36.5297,
+   "lon": -6.2927,
+   "alt_m": 0,
+   "type": "total",
+   "c1_ut_h": 7.677217675306228,
+   "max_ut_h": 8.778781645033904,
+   "c4_ut_h": 9.990764263694793,
+   "magnitude": 1.0717623979429893,
+   "obscuration": 1,
+   "sun_alt_max_deg": 37.40711259870351,
+   "sun_azi_max_deg": 95.06195423448025,
+   "visibility_codes": [
+    0,
+    0,
+    0
+   ],
+   "c2_ut_h": 8.754921597788545,
+   "c3_ut_h": 8.802817938149879,
+   "duration_s": 172.4268253008022
+  },
+  {
+   "name": "Tarifa",
+   "lat": 36.0143,
+   "lon": -5.6044,
+   "alt_m": 0,
+   "type": "total",
+   "c1_ut_h": 7.679407051671314,
+   "max_ut_h": 8.78875002550822,
+   "c4_ut_h": 10.01009496714952,
+   "magnitude": 1.0719520301388805,
+   "obscuration": 1,
+   "sun_alt_max_deg": 38.1259651411243,
+   "sun_azi_max_deg": 95.20689375252692,
+   "visibility_codes": [
+    0,
+    0,
+    0
+   ],
+   "c2_ut_h": 8.750216035910531,
+   "c3_ut_h": 8.82754208787319,
+   "duration_s": 278.3737870655743
+  },
+  {
+   "name": "Malaga",
+   "lat": 36.7202,
+   "lon": -4.4203,
+   "alt_m": 0,
+   "type": "total",
+   "c1_ut_h": 7.69971118553363,
+   "max_ut_h": 8.81585171211243,
+   "c4_ut_h": 10.041281592200315,
+   "magnitude": 1.0722627529032072,
+   "obscuration": 1,
+   "sun_alt_max_deg": 39.32571962059134,
+   "sun_azi_max_deg": 96.82100608590929,
+   "visibility_codes": [
+    0,
+    0,
+    0
+   ],
+   "c2_ut_h": 8.800539368145595,
+   "c3_ut_h": 8.831310322319318,
+   "duration_s": 110.77543502540638
+  },
+  {
+   "name": "Tangier",
+   "lat": 35.7673,
+   "lon": -5.7998,
+   "alt_m": 0,
+   "type": "total",
+   "c1_ut_h": 7.674957569555276,
+   "max_ut_h": 8.783562463457796,
+   "c4_ut_h": 10.004994002391397,
+   "magnitude": 1.0719001675028508,
+   "obscuration": 1,
+   "sun_alt_max_deg": 37.92711978704323,
+   "sun_azi_max_deg": 94.83908441923586,
+   "visibility_codes": [
+    0,
+    0,
+    0
+   ],
+   "c2_ut_h": 8.743366903865772,
+   "c3_ut_h": 8.824029301840199,
+   "duration_s": 290.3846327079355
+  },
+  {
+   "name": "Benghazi",
+   "lat": 32.1167,
+   "lon": 20.0667,
+   "alt_m": 0,
+   "type": "total",
+   "c1_ut_h": 8.176083406894154,
+   "max_ut_h": 9.51311070675089,
+   "c4_ut_h": 10.885099670061532,
+   "magnitude": 1.0778314578215107,
+   "obscuration": 1,
+   "sun_alt_max_deg": 67.77393214474466,
+   "sun_azi_max_deg": 125.70898830019087,
+   "visibility_codes": [
+    0,
+    0,
+    0
+   ],
+   "c2_ut_h": 9.46190427624798,
+   "c3_ut_h": 9.564448037722686,
+   "duration_s": 369.15754130894305
+  },
+  {
+   "name": "Luxor",
+   "lat": 25.6989,
+   "lon": 32.6421,
+   "alt_m": 0,
+   "type": "total",
+   "c1_ut_h": 8.668539604526984,
+   "max_ut_h": 10.08536276799023,
+   "c4_ut_h": 11.440029096337883,
+   "magnitude": 1.0790356625497382,
+   "obscuration": 1,
+   "sun_alt_max_deg": 81.76982221170297,
+   "sun_azi_max_deg": 195.79170326747027,
+   "visibility_codes": [
+    0,
+    0,
+    0
+   ],
+   "c2_ut_h": 10.032471384388144,
+   "c3_ut_h": 10.138143289100396,
+   "duration_s": 380.4188569641104
+  },
+  {
+   "name": "Jeddah",
+   "lat": 21.4901,
+   "lon": 39.1862,
+   "alt_m": 0,
+   "type": "total",
+   "c1_ut_h": 9.005326576097318,
+   "max_ut_h": 10.42027545561947,
+   "c4_ut_h": 11.727677325923558,
+   "magnitude": 1.0786769036306545,
+   "obscuration": 1,
+   "sun_alt_max_deg": 76.3806916262391,
+   "sun_azi_max_deg": 256.52828066904624,
+   "visibility_codes": [
+    0,
+    0,
+    0
+   ],
+   "c2_ut_h": 10.370214024476052,
+   "c3_ut_h": 10.470114038977377,
+   "duration_s": 359.64005220476605
+  }
+ ]
+}
