@@ -15,11 +15,15 @@ Jobbets fält "product" väljer generator + grind (saknas fältet = stjärnkarta
     karlekskarta     karlekskarta.py     + grind_karlekskarta.py    (text, 2–5 platser med datum/etikett, stil, språk en/sv/de)
     manfas           manfas.py           + grind_manfas.py          (text, datum, tid valfri, ort, land, stil, rad, rubrik,
                                                                      familjeläge 2–6 personer, språk en/sv/de/fr/es)
+    golfbana         golfbana.py         + grind_golfbana.py        (bana, närmaste ort, land, stil, hål/spelare/datum/text valfria,
+                                                                     språk en/sv/de; registret per Geofabrik-region, golfdata.py)
 
 Kartprodukterna hämtar data över nätet (Lantmäteriets FTP, Overpass, Nominatim). Ett tillfälligt nätfel
 lämnar jobbet i kön (nytt försök nästa körning, högst ett dygn). Körningen har en tidsbudget så att
 GitHub Actions-jobbet (15 min) aldrig avbryts mitt i en order.
 """
+import os
+os.environ.setdefault("OPENBLAS_NUM_THREADS", "1")  # numpy/scipy: annars ≈ 700 MB privat minne i trådbuffertar (12 kärnor)
 import gzip, json, os, sys, tempfile, time, unicodedata, urllib.request
 from datetime import datetime, timezone
 from pathlib import Path
@@ -37,10 +41,12 @@ PRODUCTS = {  # produkt: (generator, grind, tillåtna språk)
     "stadskarta": ("stadskarta", "grind_stadskarta", ("en", "sv", "de")),
     "karlekskarta": ("karlekskarta", "grind_karlekskarta", ("en", "sv", "de")),
     "manfas": ("manfas", "grind_manfas", ("en", "sv", "de", "fr", "es")),
+    "golfbana": ("golfbana", "grind_golfbana", ("en", "sv", "de")),
 }
+GOLF_STYLES = ("klassisk", "vintage", "minimal", "mork")
 MANFAS_STYLES = ("mork", "ljus", "akvarell", "barnrum")
 RUN_BUDGET_S = int(os.environ.get("FULFIL_BUDGET_S", str(11 * 60)))
-EST_S = {"historisk": 900, "stadskarta": 420}  # uppskattad längsta tid per order (övriga ≈ 60 s)
+EST_S = {"historisk": 900, "stadskarta": 420, "golfbana": 420}  # golfbana: regionregistret byggs ≤ 1 gång/månad (Sverige ≈ 3 min)  # uppskattad längsta tid per order (övriga ≈ 60 s)
 TEMPORARY = ("overpass misslyckades", "FTP-hämtning misslyckades")
 # Delning mellan arbetsflöden: FULFIL_ONLY=historisk (eget jobb, 45 min, cache) och FULFIL_SKIP=historisk (ordinarie 15-min-jobb)
 ONLY = {x for x in os.environ.get("FULFIL_ONLY", "").split(",") if x}
@@ -128,6 +134,8 @@ def make_order(job):
                 "style": job.get("style") or "ljus", "place": places[0]["place"], "languages": [lang]}, None
     if product == "manfas":
         return make_manfas(job, lang)
+    if product == "golfbana":
+        return make_golf(job, lang)
     g = geocode(job["city"], "SE" if product == "historisk" else job.get("country", ""))
     if not g:
         return None, "city_not_found"
@@ -158,6 +166,31 @@ def make_order(job):
                  "place": job["city"].strip()[:40], "lat": round(lat, 4), "lon": round(lon, 4), "timezone": tz,
                  "languages": [lang]}
     return order, None
+
+
+def make_golf(job, lang):
+    """Golfbanekartan: banans namn + närmaste ort + land. Hål, spelare, datum och textrad är valfria."""
+    import re
+    _, lander = load_geo()
+    if norm(job.get("country", "")) not in lander:
+        return None, "city_not_found"
+    g = geocode(job.get("city", ""), job.get("country", ""))
+    if not g:
+        return None, "city_not_found"
+    course = (job.get("course") or "").strip()[:80]
+    if not course:
+        return None, "course_not_found"
+    hole = str(job.get("hole") or "").strip()
+    if hole and not (hole.isdigit() and 1 <= int(hole) <= 36):
+        return None, "hole_not_found"
+    d = str(job.get("date") or "")
+    if d and not (re.fullmatch(r"\d{4}-\d{2}-\d{2}", d) and "1900-01-01" <= d <= "2100-12-31"):
+        return None, "date_out_of_range"
+    return {"id": job["id"], "product": "golfbana", "course": course, "title": (job.get("title") or "").strip()[:50],
+            "text": (job.get("text") or "").strip()[:40], "player": (job.get("player") or "").strip()[:40], "date": d or None,
+            "hole": int(hole) if hole else None, "place": job["city"].strip()[:40], "country": (job.get("country") or "").strip()[:40],
+            "cc": g[3], "lat": round(g[1], 4), "lon": round(g[2], 4),
+            "style": job.get("style") if job.get("style") in GOLF_STYLES else "klassisk", "languages": [lang]}, None
 
 
 def make_manfas(job, lang):
@@ -210,10 +243,20 @@ def produce(order, workdir):
     try:
         gen.generate(op)
     except SystemExit as e:  # generatorn vägrar med en begriplig orsak (t.ex. förmörkelsen syns inte från orten)
-        return None, str(e.code or "internal")
+        return None, str(e.code or "internal")  # ev. detaljer (golfbanans alternativ) i <id>_fel.json, se fail_detail
     r = gate.run(Path(workdir) / f"{order['id']}_meta.json")
     pdf = Path(workdir) / f"{order['id']}_{order['languages'][0]}.pdf"
     return r, pdf
+
+
+def fail_detail(workdir, order):
+    """Köparvänliga detaljer för ett vägrat jobb (golfbana: banor att välja bland) – bara namn, högst 8."""
+    p = Path(workdir) / f"{order['id']}_fel.json"
+    if not p.exists():
+        return None
+    d = json.load(open(p, encoding="utf-8")).get("detalj") or {}
+    opts = [str(x)[:80] for x in (d.get("alternativ") or [])][:8]
+    return {"options": opts} if opts else None
 
 
 def main():
@@ -236,7 +279,11 @@ def main():
             with tempfile.TemporaryDirectory() as wd:
                 r, pdf = produce(order, wd)
                 if r is None:
-                    api("POST", f"/api/fail/{job['id']}", {"reason": pdf}); print(job["id"], pdf); continue
+                    body = {"reason": pdf}
+                    det = fail_detail(wd, order)
+                    if det:
+                        body["detail"] = det
+                    api("POST", f"/api/fail/{job['id']}", body); print(job["id"], pdf); continue
                 if not r["godkand"]:
                     api("POST", f"/api/fail/{job['id']}", {"reason": "quality_gate", "detail": r["underkanda"]})
                     print(job["id"], "grind underkänd"); continue

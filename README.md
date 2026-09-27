@@ -15,6 +15,7 @@ GeoNames (CC BY 4.0, geonames.org) · Noto fonts (SIL OFL 1.1).
 | stadskarta | `/?p=stadskarta` | stadskarta.py (+ osmdata.py) | grind_stadskarta.py |
 | karlekskarta | `/?p=karlekskarta` | karlekskarta.py | grind_karlekskarta.py |
 | manfas | `/?p=manfas` (+ &style=&mode=family&row=&heading=) | manfas.py | grind_manfas.py (+ oberoende_mane.py) |
+| golfbana | `/?p=golfbana` (+ &style=klassisk/vintage/minimal/mork) | golfbana.py (+ golfdata.py) | grind_golfbana.py |
 
 Kartprodukternas data: Lantmäteriets öppna FTP (Häradsekonomiska, Generalstabs- och Ekonomiska kartan, CC0; bladindex i
 fulfil/data/lm/kartblad_index.json.gz, bladen cachas i fulfil/data/lm/cache/ – ej i git, 70–160 MB/blad) · OpenStreetMap ur
@@ -33,3 +34,17 @@ Test: `python fulfil/verktyg/produktionstest_nya.py` (NASA-jämförelse, 5+5 exe
 Månfas-affischen (manfas): oberoende facit i fulfil/oberoende_mane.py (Meeus kap. 47/25/48 + kap. 49 via oberoende.py,
 ΔT Espenak & Meeus 2006; självtest mot Meeus räkneexempel 47.a/48.a: `python fulfil/oberoende_mane.py`).
 Test: `python fulfil/verktyg/test_manfas.py [N=30]` (N slumpade ordrar per stil + 13 felinjektioner, sekventiellt; uppmätt topp ≈ 215 MB per process + en underprocess för determinismkontrollen).
+
+Golfbanekartan (golfbana): banan slås upp i ett golfregister per Geofabrik-region (fulfil/golfdata.py: en genomläsning av
+extraktet med nodindex på disk, cachas i fulfil/data/cache/golf/<region>_<datum>/; Sverige ≈ 3 min och ≈ 1,1 GB privat minne
+första gången, sedan < 2 s per order). Kräver ≥ 9 numrerade hål 1…n med green i OSM, annars tydligt fel till köparen (med
+banor att välja bland vid tvetydigt namn). Körs i fulfil_kartor.yml. Test: `python fulfil/verktyg/test_golfbana.py`
+(8 banor × 4 stilar, 7 köparfel, 8 felinjektioner, determinism).
+
+Förhandskoll före köp (`/golf-check`, `/golf-kolla`, svenska med `?lang=sv`): Workern svarar ur worker/src/golfindex.json
+(bundlas vid deploy), byggt av `python fulfil/verktyg/golfindex.py` ur golfregistren i fulfil/data/cache/golf/ med samma
+grindkod som ordern (golfbana.course_check). Matchningen (worker/src/golfkolla.js) är en kopia av golfdata.resolve +
+fulfil.geocode + osmextract.region_for_bbox (ordern använder registret för minsta Geofabrik-region kring orten).
+Grind: `python fulfil/verktyg/test_golfkolla.py` – kollens svar = orderns svar för varje bana i indexet (0 fel krävs).
+Bygg om indexet och deploya Workern när registren byggts om (månadsvis). England byggs per grevskap (hela England-extraktet
+kräver > 1,4 GB minne; grevskapen ≈ 0,8 GB).

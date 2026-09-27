@@ -57,7 +57,12 @@ def _ring_contains(ring, x, y):
     return ins
 
 
-def region_for_bbox(s, w, n, e):
+# Regioner som står i Geofabriks index men vars pbf-länk ger en HTML-sida (uppmätt 2026-09-27). Hoppas över – nästa
+# minsta region (föräldern) används. Okända fall fångas dessutom i pbf_for_bbox (filhuvudet kontrolleras).
+SAKNAS = {"enfield"}
+
+
+def region_for_bbox(s, w, n, e, skip=()):
     """Minsta Geofabrik-region som täcker rutans fyra hörn. Returnerar (id, pbf-url)."""
     ip = GF / "index-v1.json"
     if not _fresh(ip, 30):
@@ -68,7 +73,7 @@ def region_for_bbox(s, w, n, e):
     for f in idx["features"]:
         pbf = f["properties"].get("urls", {}).get("pbf")
         g = f.get("geometry")
-        if not pbf or not g:
+        if not pbf or not g or f["properties"]["id"] in SAKNAS or f["properties"]["id"] in skip:
             continue
         polys = g["coordinates"] if g["type"] == "MultiPolygon" else [g["coordinates"]]
         ok = all(any(_ring_contains(p[0], x, y) for p in polys) for x, y in corners)
@@ -83,18 +88,28 @@ def region_for_bbox(s, w, n, e):
     return best[1], best[2]
 
 
+def _is_pbf(p):
+    with open(p, "rb") as f:
+        return b"OSMHeader" in f.read(64)
+
+
 def pbf_for_bbox(s, w, n, e):
-    rid, url = region_for_bbox(s, w, n, e)
-    p = GF / f"{rid.replace('/', '_')}-latest.osm.pbf"
-    t = 0.0
-    if not _fresh(p, MAX_AGE_DAYS):
-        t0 = time.perf_counter()
-        try:
-            _get(url, p, timeout=1800)
-        except Exception as ex:
-            raise RuntimeError(f"overpass misslyckades: Geofabrik-hämtning {url}: {ex!r}")
-        t = time.perf_counter() - t0
-    return p, rid, url, t
+    skip = set()
+    while True:
+        rid, url = region_for_bbox(s, w, n, e, skip)
+        p = GF / f"{rid.replace('/', '_')}-latest.osm.pbf"
+        t = 0.0
+        if not _fresh(p, MAX_AGE_DAYS):
+            t0 = time.perf_counter()
+            try:
+                _get(url, p, timeout=1800)
+            except Exception as ex:
+                raise RuntimeError(f"overpass misslyckades: Geofabrik-hämtning {url}: {ex!r}")
+            t = time.perf_counter() - t0
+        if _is_pbf(p):
+            return p, rid, url, t
+        p.unlink()  # Geofabrik svarade med en HTML-sida: regionen finns inte som fil – ta nästa minsta
+        skip.add(rid)
 
 
 def _want_way(tags, spec):

@@ -1,5 +1,7 @@
 // Leveransportal för personliga stjärnkartor (Moodly Sverige).
 // Köparen fyller i uppgifterna -> jobb i KV -> GitHub Actions tillverkar + kvalitetsgranskar -> PDF i KV.
+import GOLF_INDEX from "./golfindex.json";
+import { golfCheckPage } from "./golfkolla.js";
 const TTL = 60 * 60 * 24 * 90; // allt raderas efter 90 dagar
 
 const TEXT_OK = /^[\p{Script=Latin}\p{N}\s.,&'’!?\-:+/()"“”]*$/u;
@@ -37,9 +39,9 @@ small{color:var(--mute);font:13px system-ui,sans-serif}`;
 
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 
-function page(title, body, refresh) {
+function page(title, body, refresh, lang = "en") {
   return new Response(
-    `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">` +
+    `<!doctype html><html lang="${lang === "sv" ? "sv" : "en"}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">` +
       (refresh ? `<meta http-equiv="refresh" content="${refresh}">` : "") +
       `<meta name="robots" content="noindex"><title>${esc(title)}</title><style>${css}</style></head><body><main>${body}<footer style="margin-top:40px;font:13px/1.5 system-ui,sans-serif;color:#8a8577">Moodly Sverige (org.nr 802556-3845) · Contact: <a style="color:#b9b3a3" href="mailto:guslinmarcus@gmail.com">guslinmarcus@gmail.com</a> · <a style="color:#b9b3a3" href="/privacy">Privacy &amp; terms</a><br>The term 'Etsy' is a trademark of Etsy, Inc. This application uses the Etsy API but is not endorsed or certified by Etsy, Inc.</footer></main></body></html>`,
     { headers: { "content-type": "text/html; charset=utf-8" } }
@@ -86,6 +88,10 @@ const REASONS = {
   places_count: "Please enter at least two places, each with a town, a country and a date.",
   date_out_of_range: "Please enter a date between 1 January 1900 and 31 December 2050.",
   people_count: "Family poster: please enter 2 to 6 people, each with a name and a date of birth (and a town and country, or the family's town above).",
+  course_not_found: "We could not find a golf course with that name within 40 km of the town you entered. Please check the spelling, or pick one of the courses we found nearby (listed below) and submit again.",
+  course_ambiguous: "More than one golf course matches that name. Please copy the exact name of your course from the list below and submit again.",
+  course_holes_incomplete: "We found the course, but its holes are not completely drawn in OpenStreetMap yet (at least 9 numbered holes, each with a green, are needed for a correct map). Please contact us via Etsy messages and we will refund you.",
+  hole_not_found: "The course does not have a hole with that number. Please check the hole number (or leave it empty) and submit again.",
 };
 
 // --- Fler produkter: samma kö, fältet "product" väljer generator + grind i fulfil/fulfil.py (PRODUCTS).
@@ -244,6 +250,38 @@ ${cityField(v)}<p><small>Family poster: this town is used for everyone who has n
     },
   },
 });
+// --- Golfbanekartan (fulfil/golfbana.py + grind_golfbana.py). Länk: /?p=golfbana (valfritt &style=)
+const GOLF_STYLES = { klassisk: "Classic green", vintage: "Vintage drawing", minimal: "Minimal line", mork: "Dark & gold" };
+Object.assign(PRODUCTS, {
+  golfbana: {
+    h1: "Create your golf course map",
+    intro: "Enter the name of the golf course and the nearest town. We draw every hole, fairway, green, bunker and water hazard from OpenStreetMap, with the hole numbers and the par of each hole where it is mapped. You can mark one hole – for a hole-in-one or a favourite hole. Usually ready within an hour.",
+    textLabel: "Line of text (optional, e.g. Hole in one, Our first round)", textPh: "Hole in one",
+    button: "Create my golf course map", ready: "Your golf course map is ready",
+    readyNote: "A3 portrait, vector PDF – prints sharp at A4, A3, A2 and 50×70 cm. The link works for 90 days.",
+    creating: "Your golf course map is being created", creatingText: (c) => `We are drawing the course near ${c}.`,
+    file: "golf-course-map.pdf", langs: LANGS3,
+    fields: (v) => `<label for="course">Golf course name</label><input id="course" name="course" maxlength="80" required value="${esc(v.course)}" placeholder="Falsterbo Golfklubb">
+<div class="row"><div><label for="city">Nearest town</label><input id="city" name="city" required value="${esc(v.city)}" placeholder="Höllviken"></div>
+<div><label for="country">Country</label><input id="country" name="country" required value="${esc(v.country)}" placeholder="Sweden"></div></div>
+<div class="row"><div><label for="hole">Hole to mark (optional)</label><input id="hole" name="hole" inputmode="numeric" maxlength="2" value="${esc(v.hole)}" placeholder="7"></div>
+<div><label for="player">Player's name (optional)</label><input id="player" name="player" maxlength="40" value="${esc(v.player)}" placeholder="Anna Lind"></div></div>
+<div class="row"><div><label for="date">Date (optional)</label><input id="date" name="date" type="date" min="1900-01-01" max="2100-12-31" value="${esc(v.date)}"></div>
+<div><label for="style">Style</label>${sel("style", GOLF_STYLES, v.style || "klassisk")}</div></div>
+<p><small>The course must be mapped in OpenStreetMap with its holes. <a style="color:#d9c9a0" href="/golf-kolla">Check your course first</a> – if it is not mapped well enough, you get a clear message here and a refund.</small></p>`,
+    parse: (f) => {
+      const hole = String(f.hole || "").replace(/\D/g, "").slice(0, 2);
+      return { course: String(f.course || "").trim().slice(0, 80), hole, player: String(f.player || "").trim().slice(0, 40),
+               date: DATE_RE.test(String(f.date || "")) ? String(f.date) : "", style: GOLF_STYLES[f.style] ? f.style : "klassisk" };
+    },
+    validate: (v) => {
+      if (!v.course || !v.city || !v.country) return "Please fill in the golf course, the nearest town and the country.";
+      if (!TEXT_OK.test(v.course) || !TEXT_OK.test(v.player)) return TEXT_MSG;
+      if (v.hole && !(+v.hole >= 1 && +v.hole <= 36)) return REASONS.hole_not_found;
+      return "";
+    },
+  },
+});
 function normProduct(s) {
   const k = String(s || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
   if (["historisk", "history", "address-through-time", "genom-tiden"].includes(k)) return "historisk";
@@ -251,6 +289,7 @@ function normProduct(s) {
   if (["karlekskarta", "love-map", "lovemap", "love-story-map"].includes(k)) return "karlekskarta";
   if (["formorkelse", "solformorkelse", "eclipse", "solar-eclipse"].includes(k)) return "formorkelse";
   if (["himmelskalender", "kalender", "calendar", "sky-calendar"].includes(k)) return "himmelskalender";
+  if (["golfbana", "golf", "golf-course", "golf-course-map", "golfplatz", "campo-de-golf"].includes(k)) return "golfbana";
   if (["manfas", "moon", "moon-phase", "moonphase", "birth-moon", "mondphase", "fase-lunar", "phase-lune"].includes(k)) return "manfas";
   return "";
 }
@@ -268,6 +307,7 @@ ${error ? `<p class="err">${esc(error)}</p>` : ""}
 ${P.fields ? P.fields(v) : `<div class="row"><div><label for="city">City or town</label><input id="city" name="city" required value="${esc(v.city)}" placeholder="Stockholm"></div>
 <div><label for="country">Country</label><input id="country" name="country" required value="${esc(v.country)}" placeholder="Sweden"></div></div>`}
 <label for="lang">Language</label><select id="lang" name="lang">${opt}</select>
+${v.options && v.options.length ? `<p><small>Courses we found:</small></p><ul>${v.options.map((o) => `<li><small>${esc(o)}</small></li>`).join("")}</ul>` : ""}
 <button type="submit">${esc(P.button)}</button>
 <p><small>We use these details only to make your file. They are deleted automatically after 90 days. Moodly Sverige.</small></p>
 </form>`);
@@ -283,6 +323,7 @@ const LISTING_IDS = {
   stjarnkarta: "LISTING_ID_STJARNKARTA", stjarnkarta_manfas: "LISTING_ID_STJARNKARTA_MANFAS",
   formorkelse: "LISTING_ID_FORMORKELSE", himmelskalender: "LISTING_ID_HIMMELSKALENDER",
   historisk: "LISTING_ID_HISTORISK", stadskarta: "LISTING_ID_STADSKARTA", karlekskarta: "LISTING_ID_KARLEKSKARTA",
+  golfbana: "LISTING_ID_GOLFBANA",
 };
 const ECLIPSE_BEFORE = "2027-08-02"; // förmörkelseguiden erbjuds bara före händelsen
 function crossSell(job, today = new Date().toISOString().slice(0, 10)) {
@@ -303,6 +344,7 @@ function crossSell(job, today = new Date().toISOString().slice(0, 10)) {
     stadskarta: [(job.country || "").toLowerCase().match(/^(sverige|sweden|se)$/)
       ? { key: "historisk", title: c + " through time", text: `The same place on historical maps from the 1800s to today, next to today's map.` }
       : { key: "stjarnkarta", title: "The night sky over " + c, text: `A star map of the sky over ${c} on a date that matters to you.` }],
+    golfbana: [{ key: "stadskarta", title: c + " as a city map", text: `A minimal poster of the streets, water and parks of ${c} from OpenStreetMap.` }],
     karlekskarta: [{ key: "stjarnkarta", title: "The sky over your first place",
       text: `A star map of the night sky over ${c} on ${esc((job.places && job.places[0] && job.places[0].date) || "the date of your first place")}.` }],
   };
@@ -338,12 +380,20 @@ export default {
 
     if (req.method === "GET" && p === "/") {
       const prod = normProduct(url.searchParams.get("p"));
-      if (prod) return productForm(prod, prod === "manfas" ? moonPick(Object.fromEntries(url.searchParams)) : {});
+      if (prod) {
+        const q = Object.fromEntries(url.searchParams);
+        return productForm(prod, prod === "manfas" ? moonPick(q) : prod === "golfbana" ? { style: GOLF_STYLES[q.style] ? q.style : "klassisk", course: String(q.course || "").slice(0, 80),
+          city: String(q.city || "").slice(0, 60), country: String(q.country || "").slice(0, 60) } : {});
+      }
       return form(pickStyle(Object.fromEntries(url.searchParams)));
+    }
+    // förhandskollen för golfbanekartan: fungerar banan innan köpet? (annonsen länkar hit)
+    if (req.method === "GET" && ["/golf-kolla", "/golf-check", "/golf"].includes(p)) {
+      return golfCheckPage(GOLF_INDEX, Object.fromEntries(url.searchParams), esc, page);
     }
     if (req.method === "GET" && p === "/privacy") return page("Privacy & terms", `<h1>Privacy &amp; terms</h1>
 <p><b>Who we are.</b> This service is run by Moodly Sverige, a Swedish non-profit association (org.nr 802556-3845), Vaxholm, Sweden. Surplus funds support work for children's well-being.</p>
-<p><b>What we collect.</b> Only what you enter: Etsy order number, the text for your poster, place, date, time and language. We use it only to create and deliver your file (star map, eclipse guide, sky calendar, map or Moon phase poster).</p>
+<p><b>What we collect.</b> Only what you enter: Etsy order number, the text for your poster, place, date, time, language and – for golf course maps – the course, hole and player name. We use it only to create and deliver your file (star map, eclipse guide, sky calendar, map, golf course map or Moon phase poster).</p>
 <p><b>How long.</b> Everything, including your file, is deleted automatically after 90 days.</p>
 <p><b>Sharing.</b> We never sell or share your details. They are processed by our hosting providers (Cloudflare, GitHub) only to run the service.</p>
 <p><b>Your rights.</b> You can ask us to delete your data earlier or ask what we store, via the contact address below or Etsy messages.</p>
@@ -442,6 +492,9 @@ export default {
         } else {
           const b = await req.json().catch(() => ({}));
           job.status = "failed"; job.reason = b.reason || "internal";
+          // golfbanan: namnen på banorna köparen kan välja bland (bara text, högst 8, visas escapade i formuläret)
+          if (b.detail && Array.isArray(b.detail.options)) job.options = b.detail.options.slice(0, 8).map((x) => String(x).slice(0, 80));
+          else delete job.options;
         }
         await env.JOBS.put(`job:${id}`, JSON.stringify(job), { expirationTtl: TTL });
         await env.JOBS.delete(`pending:${id}`);
