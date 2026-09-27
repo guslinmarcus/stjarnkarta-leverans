@@ -65,20 +65,20 @@ STYLES = {
                      num_fill=(0.10, 0.23, 0.16), num_text=(0.99, 0.99, 0.96), accent=(0.80, 0.14, 0.12),
                      cart=(0.93, 0.91, 0.84), title_font="KSerif", sans="KSans", frame_line=0.0),
     "vintage": dict(label="Vintage drawing", paper=(0.935, 0.885, 0.785), ink=(0.32, 0.21, 0.12), mute=(0.45, 0.34, 0.23),
-                    course=(0.905, 0.85, 0.73), rough=(0.87, 0.81, 0.68), wood=(0.80, 0.74, 0.60), grass=(0.90, 0.855, 0.745),
-                    water=(0.72, 0.77, 0.75), fairway=(0.85, 0.79, 0.63), green=(0.69, 0.63, 0.45), tee=(0.76, 0.70, 0.53),
+                    course=(0.885, 0.82, 0.69), rough=(0.85, 0.78, 0.64), wood=(0.78, 0.71, 0.56), grass=(0.90, 0.855, 0.745),
+                    water=(0.66, 0.73, 0.72), fairway=(0.79, 0.71, 0.52), green=(0.60, 0.52, 0.33), tee=(0.70, 0.62, 0.44),
                     bunker=(0.97, 0.94, 0.86), bunker_edge=(0.32, 0.21, 0.12), outline=(0.32, 0.21, 0.12), hole=(0.32, 0.21, 0.12),
                     num_fill=(0.935, 0.885, 0.785), num_text=(0.32, 0.21, 0.12), accent=(0.63, 0.12, 0.08),
                     cart=(0.80, 0.73, 0.60), title_font="KSerifIt", sans="KSerif", frame_line=0.9),
     "minimal": dict(label="Minimal line", paper=(1.0, 1.0, 1.0), ink=(0.08, 0.08, 0.08), mute=(0.40, 0.40, 0.40),
-                    course=None, rough=None, wood=None, grass=None, water=(0.90, 0.90, 0.90), fairway=None, green=(0.16, 0.16, 0.16),
+                    course=None, rough=None, wood=None, grass=None, water=(0.86, 0.86, 0.86), fairway=(0.90, 0.90, 0.90), green=(0.16, 0.16, 0.16),
                     tee=None, bunker=(0.94, 0.94, 0.94), bunker_edge=(0.08, 0.08, 0.08), outline=(0.08, 0.08, 0.08),
-                    course_edge=(0.62, 0.62, 0.62), hole=(0.08, 0.08, 0.08), num_fill=(1.0, 1.0, 1.0), num_text=(0.08, 0.08, 0.08),
+                    course_edge=(0.36, 0.36, 0.36), hole=(0.08, 0.08, 0.08), num_fill=(1.0, 1.0, 1.0), num_text=(0.08, 0.08, 0.08),
                     accent=(0.86, 0.16, 0.13), cart=(0.70, 0.70, 0.70), title_font="KSans", sans="KSans", frame_line=0.0),
     "mork": dict(label="Dark & gold", paper=(0.055, 0.075, 0.10), ink=(0.87, 0.75, 0.48), mute=(0.66, 0.58, 0.42),
-                 course=(0.085, 0.115, 0.135), rough=(0.10, 0.135, 0.15), wood=(0.07, 0.095, 0.11), grass=(0.075, 0.10, 0.12),
-                 water=(0.06, 0.13, 0.21), fairway=(0.14, 0.20, 0.19), green=(0.82, 0.70, 0.44), tee=(0.47, 0.42, 0.29),
-                 bunker=(0.63, 0.56, 0.39), bunker_edge=None, outline=(0.55, 0.48, 0.33), hole=(0.97, 0.91, 0.72),
+                 course=(0.12, 0.16, 0.18), rough=(0.14, 0.185, 0.20), wood=(0.07, 0.095, 0.11), grass=(0.075, 0.10, 0.12),
+                 water=(0.10, 0.20, 0.30), fairway=(0.22, 0.31, 0.27), green=(0.82, 0.70, 0.44), tee=(0.47, 0.42, 0.29),
+                 bunker=(0.63, 0.56, 0.39), bunker_edge=None, outline=(0.55, 0.48, 0.33), course_edge=(0.62, 0.53, 0.34), hole=(0.97, 0.91, 0.72),
                  num_fill=(0.87, 0.75, 0.48), num_text=(0.055, 0.075, 0.10), accent=(0.96, 0.42, 0.32),
                  cart=(0.16, 0.19, 0.20), title_font="KSerif", sans="KSans", frame_line=0.5),
 }
@@ -303,7 +303,7 @@ def draw_map(c, R, S, order):
     lw = max(0.25, min(0.6, 0.35 * (k / 0.25) ** 0.3))
     # kontext kring banan
     if S["style"] != "minimal":
-        for kind in ("grass", "wood", "sand", "water"):
+        for kind in ("wood", "water"):
             col = {"grass": S["grass"], "wood": S["wood"], "sand": S["bunker"], "water": S["water"]}[kind]
             w_ = 0.22 if kind == "sand" else 0.45
             col = tuple(a * w_ + b * (1 - w_) for a, b in zip(col, S["paper"]))  # kontexten dämpad mot papperet – banan i fokus
