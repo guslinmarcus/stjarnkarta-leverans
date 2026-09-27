@@ -415,6 +415,7 @@ class Sheet:
         self.info = {"blad": b["blad"], "namn": b["namn"], "ar": b["ar"], "fil": self.path.name,
                      "pixlar": [self.W, self.H]}
         self.dE = self.dN = 0.0  # passningsjustering (m): kartans innehåll vid (E+dE, N+dN) hör till (E, N)
+        self.lut = None  # färgjustering mot grannbladen (3×256, uint8), sätts av harmonize(); None = originalfärger
         self.frame_px = None
         self.valid = (0, 0, self.W, self.H)
         if self.serie == "ek":
@@ -474,7 +475,7 @@ class Sheet:
         return apply_h(self.H_geo2px, E, N)
 
 
-def resample(sheets, e0, n0, e1, n1, npx, paper=(238, 233, 220)):
+def resample(sheets, e0, n0, e1, n1, npx, paper=(238, 233, 220), with_who=False, raw=False):
     """Bygg en bild npx×npx över kvadraten ur ett eller flera blad. Där blad överlappar vinner det blad där
     punkten ligger längst in från bladets kant (ramens marginal och skannerkanter hamnar då under grannbladet).
     Returnerar (RGB-array, täckningsmask, per-blad-andel)."""
@@ -512,11 +513,88 @@ def resample(sheets, e0, n0, e1, n1, npx, paper=(238, 233, 220)):
         a = np.asarray(im, np.float32)
         cc, rr = (C[m] - c0) / f - 0.5, (R[m] - r0) / f - 0.5  # kantkoordinat -> index för pixelcentrum
         for ch in range(3):
-            out[..., ch][m] = np.clip(map_coordinates(a[..., ch], [rr, cc], order=1, mode="nearest"), 0, 255).astype(np.uint8)
+            v = np.clip(map_coordinates(a[..., ch], [rr, cc], order=1, mode="nearest"), 0, 255).astype(np.uint8)
+            if s.lut is not None and not raw:
+                v = s.lut[ch][v]
+            out[..., ch][m] = v
         cov |= m
     for si, s in enumerate(sheets):  # andel per blad räknas efter att alla blad lagts (senare blad kan ta över)
         andel[s.b["blad"]] = float((who == si).mean())
+    if with_who:
+        return out, cov, andel, who
     return out, cov, andel
+
+
+def _quantile_lut(src, dst, nq=33):
+    """Monoton färgkurva per kanal som flyttar src-pixlarnas fördelning till dst:s (kvantilmatchning)."""
+    q = np.linspace(0.03, 0.97, nq)
+    lut = np.zeros((3, 256), np.uint8)
+    x = np.arange(256, dtype=float)
+    for ch in range(3):
+        a = np.quantile(src[:, ch], q); b = np.quantile(dst[:, ch], q)
+        a = np.maximum.accumulate(a + np.arange(nq) * 1e-3)  # strikt växande
+        y = np.interp(x, a, b)
+        y[x < a[0]] = b[0] - (a[0] - x[x < a[0]])     # utanför: parallellförskjutning
+        y[x > a[-1]] = b[-1] + (x[x > a[-1]] - a[-1])
+        lut[ch] = np.clip(np.maximum.accumulate(y), 0, 255).astype(np.uint8)
+    return lut
+
+
+def harmonize(sheets, e0, n0, e1, n1, npx=600, band_m=500.0, seam_m=60.0):
+    """Färgjustera bladen i ett utsnitt så att skarvarna inte syns. Bladet med störst andel är referens; övriga
+    justeras i tur och ordning (grannar till redan justerade först) med kvantilmatchning av pixlarna i ett band
+    (band_m) på var sida om den gemensamma kanten. Kurvorna sparas i sh.lut och används av resample().
+    Returnerar mätningen per skarv: medelfärgsskillnad (|ΔR|+|ΔG|+|ΔB|) i ett smalt band (seam_m) på var
+    sida om kanten, före och efter justeringen."""
+    from scipy.ndimage import binary_dilation, distance_transform_edt
+    for s in sheets:
+        s.lut = None
+    if len(sheets) < 2:
+        return {"blad": len(sheets), "skarvar": []}
+    img, cov, andel, who = resample(sheets, e0, n0, e1, n1, npx, with_who=True, raw=True)
+    m_px = (e1 - e0) / npx
+    bw = max(2, int(round(band_m / m_px))); sw = max(1, int(round(seam_m / m_px)))
+    present = [i for i in range(len(sheets)) if (who == i).any()]
+    if len(present) < 2:
+        return {"blad": len(present), "skarvar": []}
+    dist = {i: distance_transform_edt(who != i) for i in present}  # avstånd (px) till bladets yta
+    adj = {i: {j for j in present if j != i and ((who == i) & (dist[j] <= 1.5)).sum() >= 5} for i in present}
+    ref = max(present, key=lambda i: (who == i).sum())
+    done, order = {ref}, []
+    cur = img.astype(np.float32)
+    while len(done) < len(present):
+        cand = [i for i in present if i not in done and adj[i] & done]
+        if not cand:  # ej sammanhängande: justera mot referensen via hela utsnittet
+            cand = [i for i in present if i not in done]
+        i = max(cand, key=lambda k: ((who == k) & (np.minimum.reduce([dist[j] for j in done]) <= bw)).sum())
+        near_done = np.minimum.reduce([dist[j] for j in done])
+        src = cur[(who == i) & (near_done <= bw)]
+        dst = cur[np.isin(who, list(done)) & (dist[i] <= bw)]
+        if len(src) < 200 or len(dst) < 200:
+            src, dst = cur[who == i], cur[np.isin(who, list(done))]
+        lut = _quantile_lut(src, dst)
+        sheets[i].lut = lut
+        m = who == i
+        for ch in range(3):
+            cur[..., ch][m] = lut[ch][img[..., ch][m]]
+        done.add(i); order.append(i)
+
+    def seam_diff(arr):
+        res = []
+        for i in present:
+            for j in adj[i]:
+                if j <= i:
+                    continue
+                a_ = arr[(who == i) & (dist[j] <= sw)]; b_ = arr[(who == j) & (dist[i] <= sw)]
+                if len(a_) < 20 or len(b_) < 20:
+                    continue
+                res.append(((sheets[i].b["blad"], sheets[j].b["blad"]), float(np.abs(a_.mean(0) - b_.mean(0)).sum())))
+        return res
+    before = dict(seam_diff(img.astype(np.float32))); after = dict(seam_diff(cur))
+    return {"blad": len(present), "referens": sheets[ref].b["blad"],
+            "skarvar": [{"blad": list(k), "fore": round(before[k], 1), "efter": round(after[k], 1)} for k in after],
+            "max_efter": round(max(after.values()), 1) if after else 0.0,
+            "lut_max_andring": {sheets[i].b["blad"]: int(np.abs(sheets[i].lut.astype(int) - np.arange(256)).max()) for i in order}}
 
 
 def _in_quad(E, N, ring):

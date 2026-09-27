@@ -58,14 +58,22 @@ MONTHS = {
     "en": ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"],
     "de": ["Januar", "Februar", "März", "April", "Mai", "Juni", "Juli", "August", "September", "Oktober", "November", "Dezember"],
     "es": ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"],
+    "fr": ["janvier", "février", "mars", "avril", "mai", "juin", "juillet", "août", "septembre", "octobre", "novembre", "décembre"],
 }
 DIRS = {
     "sv": ["norr", "nordost", "öster", "sydost", "söder", "sydväst", "väster", "nordväst"],
     "en": ["north", "north-east", "east", "south-east", "south", "south-west", "west", "north-west"],
     "de": ["Norden", "Nordosten", "Osten", "Südosten", "Süden", "Südwesten", "Westen", "Nordwesten"],
     "es": ["norte", "noreste", "este", "sureste", "sur", "suroeste", "oeste", "noroeste"],
+    "fr": ["nord", "nord-est", "est", "sud-est", "sud", "sud-ouest", "ouest", "nord-ouest"],
 }
-COMPASS = {"sv": "NÖSV", "en": "NESW", "de": "NOSW", "es": "NESO"}
+# franska i löptext: riktningen med artikel ("vers le nord", "vers l’est")
+DIRS_ART = {"fr": ["le nord", "le nord-est", "l’est", "le sud-est", "le sud", "le sud-ouest", "l’ouest", "le nord-ouest"]}
+COMPASS = {"sv": "NÖSV", "en": "NESW", "de": "NOSW", "es": "NESO", "fr": "NESO"}
+
+
+def dir_txt(lang, i):
+    return DIRS_ART[lang][i] if lang in DIRS_ART else DIRS[lang][i]
 T = {
     "sv": {
         "title": "Solförmörkelsen 2 augusti 2027",
@@ -251,8 +259,55 @@ T = {
         "poster_date": "2 de agosto de 2027",
         "page": "Página {n} de 3",
     },
+    "fr": {
+        "title": "L’éclipse solaire du 2 août 2027",
+        "sub": "Votre guide personnel pour {place}",
+        "weekday": "lundi 2 août 2027",
+        "c1": "Début de l’éclipse", "c2": "Début de la totalité", "max": "Maximum", "c3": "Fin de la totalité", "c4": "Fin de l’éclipse",
+        "cover": "Part du Soleil couverte", "mag": "Magnitude",
+        "tot_yes": "Totalité : OUI – {dur}", "tot_no": "Totalité : non – l’éclipse est partielle ici",
+        "dur": "{m} min {s} s",
+        "nearest": "Le lieu le plus proche avec une éclipse totale se trouve à environ {km} km, vers {dir}.",
+        "sunpos": "Au maximum, le Soleil est à {alt}° au-dessus de l’horizon, vers {dir} (azimut {az}°).",
+        "tz": "Toutes les heures sont en heure locale ({tz}, UTC{off}).",
+        "timeline": "Le déroulement de l’éclipse vu depuis {place}",
+        "timeline_note": "Ainsi la Lune couvre le Soleil. Le haut de l’image est le haut du ciel (vers le zénith).",
+        "sky": "Où se trouve le Soleil dans le ciel",
+        "sky_note": "Vu d’en haut : le centre est juste au-dessus de vous, le bord est l’horizon.",
+        "start": "Début", "end": "Fin",
+        "what": "Ce que vous allez remarquer",
+        "exp_low": "Le Soleil semble avoir été croqué. Sans lunettes d’éclipse, on le remarque à peine : la lumière du jour paraît presque normale.",
+        "exp_mid": "La lumière du jour faiblit et prend un ton plus froid. Les ombres deviennent plus nettes. Sous les arbres, de petites images du Soleil en forme de croissant apparaissent au sol.",
+        "exp_high": "Il fait nettement plus sombre et plus frais, et la lumière prend un étrange ton métallique. Sous les arbres apparaissent des centaines de petits croissants de Soleil.",
+        "exp_tot": "Quand la Lune couvre tout le Soleil, il fait aussi sombre qu’au crépuscule en plein jour. Les planètes et les étoiles les plus brillantes apparaissent, la couronne solaire brille autour de la Lune noire et la température baisse de plusieurs degrés. Juste avant et juste après, on voit « l’anneau de diamant ».",
+        "map": "La bande de totalité",
+        "map_band": "Éclipse totale (la Lune couvre tout le Soleil)",
+        "map_you": "Votre lieu",
+        "map_note": "En dehors de la bande, l’éclipse est partielle. Plus on est proche de la bande, plus la part du Soleil couverte est grande.",
+        "safety": "Sécurité – à lire avant l’éclipse",
+        "s1": "Ne regardez jamais directement le Soleil sans lunettes d’éclipse certifiées selon la norme ISO 12312-2. Les lunettes de soleil ordinaires ne protègent pas, même plusieurs paires superposées.",
+        "s2": "Vérifiez vos lunettes avant de les utiliser : elles doivent porter la mention ISO 12312-2 et le nom du fabricant, et le filtre ne doit avoir ni rayure ni trou. Jetez les lunettes abîmées.",
+        "s3": "Ne regardez jamais le Soleil à travers un appareil photo, des jumelles ou un télescope avec des lunettes d’éclipse : l’optique concentre la lumière et détruit le filtre et l’œil. Une optique a besoin de son propre filtre solaire devant l’objectif.",
+        "s4": "Les enfants doivent toujours avoir un adulte à côté d’eux et garder leurs lunettes tout le temps qu’ils regardent vers le Soleil.",
+        "s5_tot": "Ce n’est que pendant la totalité, quand le Soleil est entièrement couvert, que l’on peut retirer ses lunettes. Remettez-les dès que le premier point de lumière apparaît.",
+        "s5_part": "Ici, l’éclipse est partielle. Il n’est jamais sûr de regarder le Soleil sans protection, même quand il est presque entièrement couvert.",
+        "s6": "Une alternative sûre : percez un trou avec une épingle dans un morceau de carton et laissez le Soleil briller à travers sur une feuille blanche. Vous verrez le Soleil éclipsé sous la forme d’une petite image projetée.",
+        "prep": "Comment vous préparer",
+        "p1": "Procurez-vous à temps des lunettes certifiées, une paire par personne.",
+        "p2": "Choisissez un endroit avec une vue dégagée vers {dir} et sortez au moins 15 minutes avant le début, à {c1}.",
+        "p3": "Regardez aussi autour de vous : la lumière, les ombres, les oiseaux et la température changent.",
+        "p4": "Pour photographier le Soleil, il faut un filtre solaire devant l’objectif. Sans filtre, vous pouvez photographier la lumière et les ombres.",
+        "weather": "Le calcul suppose un ciel dégagé. Personne ne peut prévoir la météo un an à l’avance.",
+        "credit": "Calculé avec Skyfield (MIT) et l’éphéméride DE421 du JPL. Carte : Natural Earth (domaine public). "
+                  "Vérifié automatiquement par un calcul indépendant à partir des éléments besséliens de la NASA – Eclipse Predictions by Fred Espenak, NASA's GSFC. "
+                  "Polices : Noto (SIL OFL 1.1). Moodly Sverige.",
+        "poster_title": "L’éclipse solaire",
+        "poster_date": "2 août 2027",
+        "page": "Page {n} sur 3",
+    },
 }
-FOREIGN = {"sv": ["Finsternis", "eclipse begins", "Totalidad"], "en": ["Förmörkelsen", "Finsternis", "Totalidad"],
+FOREIGN = {"fr": ["Förmörkelsen", "Finsternis", "eclipse begins", "Totalidad"],
+           "sv": ["Finsternis", "eclipse begins", "Totalidad"], "en": ["Förmörkelsen", "Finsternis", "Totalidad"],
            "de": ["Förmörkelsen", "eclipse begins", "Totalidad"], "es": ["Förmörkelsen", "Finsternis", "eclipse begins"]}
 
 
@@ -646,10 +701,10 @@ def render(order, circ, snaps, band, lang, path):
     c.setFont("Sans", 8.5); c.setFillColorRGB(*MUTE); c.drawString(M, y, tx["tz"].format(tz=loc_max.tzname(), off=offs))
     y -= 8 * mm
     alt, az = circ["sun_altaz"]["max"]
-    y = para(c, tx["sunpos"].format(alt=round(alt), dir=DIRS[lang][compass8(az)], az=round(az)), M, y, W - 2 * M, size=10)
+    y = para(c, tx["sunpos"].format(alt=round(alt), dir=dir_txt(lang, compass8(az)), az=round(az)), M, y, W - 2 * M, size=10)
     if not total:
         y = para(c, tx["nearest"].format(km=f"{round(circ['nearest_km'], -1):,.0f}".replace(",", " " if lang != "en" else ","),
-                                        dir=DIRS[lang][compass8(circ["nearest_bearing"])]), M, y, W - 2 * M, size=10)
+                                        dir=dir_txt(lang, compass8(circ["nearest_bearing"]))), M, y, W - 2 * M, size=10)
     # tidslinje
     y -= 8 * mm
     c.setFont("Serif", 14); c.setFillColorRGB(*INK)
@@ -739,7 +794,7 @@ def render(order, circ, snaps, band, lang, path):
     y -= 5 * mm
     c.setFont("Serif", 16); c.setFillColorRGB(*INK); c.drawString(M, y, tx["prep"]); y -= 8 * mm
     for k in ("p1", "p2", "p3", "p4"):
-        text = tx[k].format(dir=DIRS[lang][compass8(az)], c1=fmt_time(shown["c1"], tz, secs=False))
+        text = tx[k].format(dir=dir_txt(lang, compass8(az)), c1=fmt_time(shown["c1"], tz, secs=False))
         c.setFillColorRGB(*GOLD); c.circle(M + 1.5 * mm, y + 1.2 * mm, 1.0 * mm, stroke=0, fill=1)
         y = para(c, text, M + 6 * mm, y, W - 2 * M - 6 * mm, size=10.5) - 3 * mm
     y -= 4 * mm

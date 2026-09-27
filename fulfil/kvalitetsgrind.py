@@ -15,6 +15,12 @@ import fitz  # PyMuPDF
 import numpy as np
 
 A3 = (841.89, 1190.55)  # pt
+DATUM_MANADER = {  # grindens egen tabell – får inte importeras från generatorn
+    "en": "January February March April May June July August September October November December".split(),
+    "sv": "januari februari mars april maj juni juli augusti september oktober november december".split(),
+    "de": "Januar Februar März April Mai Juni Juli August September Oktober November Dezember".split(),
+    "fr": "janvier février mars avril mai juin juillet août septembre octobre novembre décembre".split(),
+}
 MM = 72 / 25.4
 ROOT = Path(__file__).parent
 KANDA_STILAR = {"midnatt", "minimal", "akvarell", "hjarta", "manfas", "barnrum"}
@@ -181,6 +187,12 @@ def run(meta_path):
         missing = [s for s in need if s not in txt]
         chk(f"{lang}_text_komplett", not missing and shown.casefold() == o["name"].casefold(),
             f"saknas: {missing}" if missing else "namn, titel, datum, koordinater")
+        # 7a. Datumformat per språk, räknat oberoende av generatorns mallar (egen månadstabell här)
+        dl = o["datetime_local"]; yy_, mo_, dd_ = int(dl[:4]), int(dl[5:7]), int(dl[8:10]); hm_ = dl[11:16]
+        mn = DATUM_MANADER[lang][mo_ - 1]
+        want = {"en": f"{mn} {dd_}, {yy_} at {hm_}", "sv": f"{dd_} {mn} {yy_} kl. {hm_}",
+                "de": f"{dd_}. {mn} {yy_} um {hm_} Uhr", "fr": f"{'1er' if dd_ == 1 else dd_} {mn} {yy_} à {hm_}"}[lang]
+        chk(f"{lang}_datumformat", want in txt, f"väntat \"{want}\"")
         chk(f"{lang}_inga_trasiga_tecken", "�" not in txt and "■" not in txt, "U+FFFD/■ ej funnet")
         # 7b. Varje tecken finns i det typsnitt det är satt med (annars blir det tomrutor i trycket)
         spans = [sp for b in page.get_text("dict")["blocks"] for l in b.get("lines", []) for sp in l["spans"]]
@@ -215,8 +227,9 @@ def run(meta_path):
                         bad.append(("over_manen", s[:30])); break
         chk(f"{lang}_layout", not bad, f"{bad[:3]}" if bad else "ok")
         # 10. Språkkontroll: månadsnamn och inga ord från andra språks mallar
-        foreign = {"sv": ["Sternenhimmel", "night sky"], "en": ["Stjärnhimlen", "Sternenhimmel"],
-                   "de": ["Stjärnhimlen", "night sky"]}[lang]
+        foreign = {"sv": ["Sternenhimmel", "night sky", "ciel étoilé"], "en": ["Stjärnhimlen", "Sternenhimmel", "ciel étoilé"],
+                   "de": ["Stjärnhimlen", "night sky", "ciel étoilé"],
+                   "fr": ["Stjärnhimlen", "Sternenhimmel", "night sky"]}[lang]
         chk(f"{lang}_sprak", not any(f in txt for f in foreign), "inga främmande mallord")
         # 11. Raster 300 dpi i färg: stjärnorna syns där beräkningen säger, i stilens stjärnfärg
         pix = page.get_pixmap(dpi=300, colorspace=fitz.csRGB)

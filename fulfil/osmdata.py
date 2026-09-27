@@ -103,10 +103,15 @@ HIGHWAY_MID = "secondary|tertiary|secondary_link|tertiary_link"
 HIGHWAY_MINOR = "unclassified|residential|living_street|pedestrian|road"
 
 
-def query_map(s, w, n, e, roads=True, minor=True, water=True, green=True, rail=True):
-    """Datamängden som en JSON-sträng (cachenyckel och det som sparas i meta, så att grinden läser samma data)."""
-    return json.dumps({"bbox": [round(s, 6), round(w, 6), round(n, 6), round(e, 6)], "roads": roads, "minor": minor,
-                       "water": water, "green": green, "rail": rail}, sort_keys=True)
+def query_map(s, w, n, e, roads=True, minor=True, water=True, green=True, rail=True, rich=False):
+    """Datamängden som en JSON-sträng (cachenyckel och det som sparas i meta, så att grinden läser samma data).
+    rich=True lägger till byggnader, markanvändning (åker, äng, bebyggelse) och ortnamn (place-noder) –
+    nyckeln tas bara med när den är satt, så att äldre cachenycklar (stadskarta) är oförändrade."""
+    d = {"bbox": [round(s, 6), round(w, 6), round(n, 6), round(e, 6)], "roads": roads, "minor": minor,
+         "water": water, "green": green, "rail": rail}
+    if rich:
+        d["rich"] = True
+    return json.dumps(d, sort_keys=True)
 
 
 def fetch(spec):
@@ -232,10 +237,27 @@ def join_directed(lines):
 def parse_features(d):
     """OSM-element → {'roads': [(klass, [(lon,lat)…])], 'rail': […], 'water': [ringlistor], 'rivers': [...],
     'green': [ringlistor], 'coast': [linjer]}"""
-    F = {"roads": [], "rail": [], "water": [], "rivers": [], "green": [], "coast": []}
+    F = {"roads": [], "rail": [], "water": [], "rivers": [], "green": [], "coast": [],
+         "buildings": [], "fields": [], "meadow": [], "urban": [], "places": [], "water_names": []}
     for el in d.get("elements", []):
         t = el.get("tags", {})
+        if el["type"] == "node":
+            if t.get("place") and t.get("name"):
+                F["places"].append((t["place"], t["name"], el["lon"], el["lat"], int(t.get("population", "0") or 0) if str(t.get("population", "0")).isdigit() else 0))
+            continue
         if el["type"] == "way" and "geometry" in el:
+            pts0 = [(g["lon"], g["lat"]) for g in el["geometry"] if g]
+            if t.get("place") in ("island", "islet") and t.get("name") and len(pts0) >= 4:
+                F["places"].append((t["place"], t["name"], sum(p[0] for p in pts0) / len(pts0), sum(p[1] for p in pts0) / len(pts0), 0))
+                if not ("natural" in t or "landuse" in t or "building" in t):
+                    continue
+            if t.get("building") and len(pts0) >= 4:
+                F["buildings"].append([pts0]); continue
+            lu = t.get("landuse")
+            if lu in ("farmland", "meadow", "residential", "industrial", "commercial", "retail", "allotments", "orchard") and len(pts0) >= 4                     and _key(pts0[0]) == _key(pts0[-1]):
+                F["fields" if lu in ("farmland", "allotments", "orchard") else "meadow" if lu == "meadow" else "urban"].append([pts0]); continue
+            if t.get("name") and len(pts0) >= 4 and (t.get("natural") == "water" or t.get("landuse") == "reservoir"):
+                F["water_names"].append((t["name"], pts0))
             pts = [(g["lon"], g["lat"]) for g in el["geometry"] if g]
             if len(pts) < 2:
                 continue
@@ -264,6 +286,15 @@ def parse_features(d):
                 continue
             if t.get("natural") == "water" or t.get("waterway") == "riverbank":
                 F["water"].append(rings)
+                if t.get("name"):
+                    F["water_names"].append((t["name"], max(rings, key=len)))
+            elif t.get("landuse") in ("farmland", "meadow", "residential", "industrial", "commercial", "retail"):
+                F["fields" if t["landuse"] == "farmland" else "meadow" if t["landuse"] == "meadow" else "urban"].append(rings)
+            elif t.get("building"):
+                F["buildings"].append(rings)
+            elif t.get("place") in ("island", "islet") and t.get("name"):
+                r = max(rings, key=len)
+                F["places"].append((t["place"], t["name"], sum(p[0] for p in r) / len(r), sum(p[1] for p in r) / len(r), 0))
             else:
                 F["green"].append(rings)
     return F

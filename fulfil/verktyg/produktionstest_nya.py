@@ -19,6 +19,8 @@ ECL = [
     {"id": "f3_malaga", "text": "Lucía & Mateo", "place": "Málaga", "lat": 36.7202, "lon": -4.4203, "timezone": "Europe/Madrid", "languages": ["es", "en"]},
     {"id": "f4_luxor", "text": "Our Nile trip", "place": "Luxor", "lat": 25.6989, "lon": 32.6421, "timezone": "Africa/Cairo", "languages": ["en"]},
     {"id": "f5_berlin", "text": "Für Oma Hilde", "place": "Berlin", "lat": 52.5244, "lon": 13.4105, "timezone": "Europe/Berlin", "languages": ["de"]},
+    {"id": "f6_paris", "text": "Pour Élodie & Théo", "place": "Paris", "lat": 48.8534, "lon": 2.3488, "timezone": "Europe/Paris", "languages": ["fr"]},
+    {"id": "f7_tanger", "text": "Notre voyage au Maroc", "place": "Tanger", "lat": 35.7673, "lon": -5.7998, "timezone": "Africa/Casablanca", "languages": ["fr", "en"]},
 ]
 CAL = [
     {"id": "k1_vaxholm", "text": "Till Signe", "place": "Vaxholm", "lat": 59.4025, "lon": 18.3513, "timezone": "Europe/Stockholm", "languages": ["sv", "en"]},

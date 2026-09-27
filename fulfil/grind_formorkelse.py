@@ -29,7 +29,11 @@ MUST_CREDIT = ["Skyfield", "DE421", "Natural Earth", "Fred Espenak", "OFL"]
 FOREIGN = {"sv": ["Finsternis", "Eclipse begins", "Totalidad", "Total eclipse"],
            "en": ["Förmörkelsen", "Finsternis", "Totalidad"],
            "de": ["Förmörkelsen", "Eclipse begins", "Totalidad"],
-           "es": ["Förmörkelsen", "Finsternis", "Eclipse begins"]}
+           "es": ["Förmörkelsen", "Finsternis", "Eclipse begins"],
+           "fr": ["Förmörkelsen", "Finsternis", "Eclipse begins", "Totalidad", "Totality"]}
+# datumraden (veckodag + datum) med grindens egen tabell – rätt datumformat per språk, oberoende av generatorn
+DATUM = {"sv": "MÅNDAG 2 AUGUSTI 2027", "en": "MONDAY, 2 AUGUST 2027", "de": "MONTAG, 2. AUGUST 2027",
+         "es": "LUNES, 2 DE AGOSTO DE 2027", "fr": "LUNDI 2 AOÛT 2027"}
 SAFETY_KEYS = ["s1", "s2", "s3", "s4", "s6"]
 
 
@@ -175,13 +179,14 @@ def run(meta_path):
             kmv = [int(re.sub(r"\D", "", x)) for x in km]
             chk(f"{lang}_avstand_tryckt", len(kmv) == 1 and abs(kmv[0] - dn) <= max(20, 0.02 * dn), f"tryckt {kmv} / NASA {dn:.0f} km")
         # solens höjd och azimut tryckta
-        ma = re.search(r"(\d+)° (?:över|above|über|sobre)", texts[0])
+        ma = re.search(r"(\d+)° (?:över|above|über|sobre|au-dessus)", texts[0])
         mz = re.search(r"(?:azimut|azimuth|Azimut|acimut) (\d+)°", texts[0])
         ok = bool(ma and mz) and abs(int(ma.group(1)) - ga) <= 1 and abs((int(mz.group(1)) - gz + 180) % 360 - 180) <= 2
         chk(f"{lang}_solposition_tryckt", ok, f"tryckt {ma.group(1) if ma else None}°/{mz.group(1) if mz else None}° mot {ga:.1f}°/{gz:.1f}°")
         # ort, text, säkerhet, källor, språk
         need = [o["place"]] + ([o["text"]] if o.get("text") else [])
         chk(f"{lang}_ort_och_text", all(n in alltxt for n in need), f"{need}")
+        chk(f"{lang}_datumformat", DATUM[lang] in texts[0], f"väntat {DATUM[lang]!r} på sida 1")
         chk(f"{lang}_iso_12312_2", "ISO 12312-2" in texts[2], "säkerhetsstandarden nämns på säkerhetssidan")
         import formorkelse as F  # bara mallarna (text), ingen beräkning
         tx = F.T[lang]

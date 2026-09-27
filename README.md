@@ -14,6 +14,7 @@ GeoNames (CC BY 4.0, geonames.org) · Noto fonts (SIL OFL 1.1).
 | historisk | `/?p=historisk` | historisk.py (+ lmkartor.py, passning.py) | grind_historisk.py |
 | stadskarta | `/?p=stadskarta` | stadskarta.py (+ osmdata.py) | grind_stadskarta.py |
 | karlekskarta | `/?p=karlekskarta` | karlekskarta.py | grind_karlekskarta.py |
+| manfas | `/?p=manfas` (+ &style=&mode=family&row=&heading=) | manfas.py | grind_manfas.py (+ oberoende_mane.py) |
 
 Kartprodukternas data: Lantmäteriets öppna FTP (Häradsekonomiska, Generalstabs- och Ekonomiska kartan, CC0; bladindex i
 fulfil/data/lm/kartblad_index.json.gz, bladen cachas i fulfil/data/lm/cache/ – ej i git, 70–160 MB/blad) · OpenStreetMap ur
@@ -28,3 +29,7 @@ fulfil/data/nasa/ (hämtat 2026-09-27 från eclipse.gsfc.nasa.gov: Besselska ele
 referensorter körda med NASA:s JSEX via fulfil/verktyg/nasa_jsex_referens.js – "Eclipse Predictions by Fred Espenak, NASA's GSFC").
 Karta: Natural Earth 1:50m (public domain), utdrag i fulfil/data/ne_50m_lander_utdrag.json.gz.
 Test: `python fulfil/verktyg/produktionstest_nya.py` (NASA-jämförelse, 5+5 exempelordrar, felinjektion).
+
+Månfas-affischen (manfas): oberoende facit i fulfil/oberoende_mane.py (Meeus kap. 47/25/48 + kap. 49 via oberoende.py,
+ΔT Espenak & Meeus 2006; självtest mot Meeus räkneexempel 47.a/48.a: `python fulfil/oberoende_mane.py`).
+Test: `python fulfil/verktyg/test_manfas.py [N=30]` (N slumpade ordrar per stil + 13 felinjektioner, sekventiellt; uppmätt topp ≈ 215 MB per process + en underprocess för determinismkontrollen).

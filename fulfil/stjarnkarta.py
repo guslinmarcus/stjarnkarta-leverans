@@ -120,6 +120,8 @@ MONTHS = {
            "September", "October", "November", "December"],
     "de": ["Januar", "Februar", "März", "April", "Mai", "Juni", "Juli", "August",
            "September", "Oktober", "November", "Dezember"],
+    "fr": ["janvier", "février", "mars", "avril", "mai", "juin", "juillet", "août",
+           "septembre", "octobre", "novembre", "décembre"],
 }
 T = {
     "sv": {"title": "Stjärnhimlen över {place}",
@@ -137,8 +139,23 @@ T = {
            "moon": "Mond: {pct} % beleuchtet",
            "credit": "Sterne: Yale Bright Star Catalogue (Hoffleit & Warren 1991). "
                      "Positionen: JPL DE421 via Skyfield. Sternbildlinien: d3-celestial © Olaf Frohn (BSD)."},
+    # franska: "1er" för månadens första dag, "de"/"d’" före ortnamnet (se fr_title), 24-timmarsklocka
+    "fr": {"title": "Le ciel étoilé au-dessus {de_place}",
+           "date": "{d} {m} {y} à {hm}",
+           "moon": "Lune : {pct} % éclairée",
+           "credit": "Étoiles : Yale Bright Star Catalogue (Hoffleit & Warren 1991). "
+                     "Positions : JPL DE421 via Skyfield. Lignes des constellations : d3-celestial © Olaf Frohn (BSD)."},
 }
-COMPASS = {"sv": "NÖSV", "en": "NESW", "de": "NOSW"}
+COMPASS = {"sv": "NÖSV", "en": "NESW", "de": "NOSW", "fr": "NESO"}
+
+
+def fr_de(place):
+    """Fransk elision: "de Paris" men "d’Orléans" (vokal eller stumt h räknas inte – h-ord får "de")."""
+    return ("d’" if place[:1].lower() in "aeiouyàâäéèêëîïôöùûü" else "de ") + place
+
+
+def fr_day(d):
+    return "1er" if d == 1 else str(d)
 
 
 def font_for(text, preferred, fallback="Serif"):
@@ -479,10 +496,11 @@ def finish_text(c, geom, sky_bottom, order, sky, lang, style_bundle):
     while size > 12 and pdfmetrics.stringWidth(name, f_name, size) + cs * len(name) > maxw:
         size -= 1
     c.setFont(f_name, size); c.drawCentredString(PAGE_W / 2, y0, name, charSpace=cs)
-    title = tx["title"].format(place=order["place"])
+    title = tx["title"].format(place=order["place"], de_place=fr_de(order["place"]))
     c.setFont(font_for(title, f_title, "SerifIt"), 15)
     c.drawCentredString(PAGE_W / 2, y0 - 13 * mm, title)
-    date = tx["date"].format(d=loc.day, m=MONTHS[lang][loc.month - 1], y=loc.year, hm=loc.strftime("%H:%M"))
+    date = tx["date"].format(d=fr_day(loc.day) if lang == "fr" else loc.day, m=MONTHS[lang][loc.month - 1], y=loc.year,
+                             hm=loc.strftime("%H:%M"))
     c.setFont(f_body, 11)
     lat, lon = order["lat"], order["lon"]
     coord = f"{abs(lat):.4f}° {'N' if lat >= 0 else 'S'}  ·  {abs(lon):.4f}° {'E' if lon >= 0 else 'W'}"

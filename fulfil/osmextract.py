@@ -112,7 +112,15 @@ def _want_way(tags, spec):
     if spec.get("green", True):
         if tags.get("leisure") == "park" or tags.get("landuse") == "forest" or tags.get("natural") == "wood":
             return True
+    if spec.get("rich"):
+        if "building" in tags or tags.get("landuse") in RICH_LANDUSE or tags.get("place") in ("island", "islet"):
+            return True
     return False
+
+
+RICH_LANDUSE = {"farmland", "meadow", "residential", "industrial", "commercial", "retail", "allotments", "orchard"}
+PLACE_KINDS = {"city", "town", "village", "hamlet", "suburb", "quarter", "neighbourhood", "island", "islet", "locality",
+               "isolated_dwelling", "farm"}
 
 
 def _want_rel(tags, spec):
@@ -120,7 +128,25 @@ def _want_rel(tags, spec):
         return True
     if spec.get("green", True) and (tags.get("leisure") == "park" or tags.get("landuse") == "forest" or tags.get("natural") == "wood"):
         return True
+    if spec.get("rich") and (tags.get("landuse") in RICH_LANDUSE or "building" in tags or tags.get("place") in ("island", "islet")):
+        return True
     return False
+
+
+def _node_index():
+    """Nodindex för with_locations. Standard: på disk (sparse_file_array) – i minnet (flex_mem) tar Sverige-extraktet
+    ≈ 2,2 GB RAM (uppmätt 2026-09-28), på disk ≈ 1 GB privat minne (resten är filcache som operativsystemet kan släppa). OSM_NODE_INDEX=flex_mem ger den gamla, snabbare vägen."""
+    st = os.environ.get("OSM_NODE_INDEX", "")
+    if st:
+        return st, None
+    GF.mkdir(parents=True, exist_ok=True)
+    for old in GF.glob("nodindex_*.bin"):  # rester från tidigare körningar (Windows släpper filen först när processen slutar)
+        try:
+            old.unlink()
+        except OSError:
+            pass
+    f = GF / f"nodindex_{os.getpid()}.bin"
+    return f"sparse_file_array,{f}", f
 
 
 def extract(spec):
@@ -145,8 +171,10 @@ def extract(spec):
     # vanliga vägar m.m. längre än ~30 km är sällsynta; relationsmedlemmar (stora sjöar) får större marginal
     mw, ms = 0.35, 0.25
     rw, rs = 2.5, 1.5
-    for wy in osmium.FileProcessor(str(pbf), osmium.osm.NODE | osmium.osm.WAY).with_locations().with_filter(
-            osmium.filter.EntityFilter(osmium.osm.WAY)):
+    storage, idxfile = _node_index()
+    fp = osmium.FileProcessor(str(pbf), osmium.osm.NODE | osmium.osm.WAY).with_locations(storage).with_filter(
+        osmium.filter.EntityFilter(osmium.osm.WAY))
+    for wy in fp:
         in_need = wy.id in need
         tags = wy.tags
         if not in_need:
@@ -175,7 +203,21 @@ def extract(spec):
         if inter and len(tags) and _want_way(tags, spec):
             ways.append({"type": "way", "id": wy.id, "tags": dict(tags),
                          "geometry": [{"lat": y, "lon": x} for x, y in zip(xs, ys)]})
+    del fp
+    import gc; gc.collect()
+    if idxfile is not None:
+        try:
+            idxfile.unlink()
+        except OSError:
+            pass
     els = ways
+    if spec.get("rich"):  # ortnamn: place-noder (filtret körs i C++, Python ser bara noder med place=*)
+        for nd in osmium.FileProcessor(str(pbf), osmium.osm.NODE).with_filter(osmium.filter.KeyFilter("place")):
+            tg = nd.tags
+            if tg.get("place") in PLACE_KINDS and "name" in tg:
+                lo_, la_ = nd.location.lon, nd.location.lat
+                if w <= lo_ <= e and s <= la_ <= n:
+                    els.append({"type": "node", "id": nd.id, "lat": la_, "lon": lo_, "tags": dict(tg)})
     for rid_ in hit_rel:
         tg, mem = rels[rid_]
         members = []

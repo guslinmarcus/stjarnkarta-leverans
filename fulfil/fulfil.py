@@ -13,6 +13,8 @@ Jobbets fält "product" väljer generator + grind (saknas fältet = stjärnkarta
     historisk        historisk.py        + grind_historisk.py       (text, adress, ort i Sverige, språk sv/en)
     stadskarta       stadskarta.py       + grind_stadskarta.py      (text, ort, land, stil, radie, språk en/sv/de)
     karlekskarta     karlekskarta.py     + grind_karlekskarta.py    (text, 2–5 platser med datum/etikett, stil, språk en/sv/de)
+    manfas           manfas.py           + grind_manfas.py          (text, datum, tid valfri, ort, land, stil, rad, rubrik,
+                                                                     familjeläge 2–6 personer, språk en/sv/de/fr/es)
 
 Kartprodukterna hämtar data över nätet (Lantmäteriets FTP, Overpass, Nominatim). Ett tillfälligt nätfel
 lämnar jobbet i kön (nytt försök nästa körning, högst ett dygn). Körningen har en tidsbudget så att
@@ -28,13 +30,15 @@ PORTAL = os.environ.get("PORTAL_URL", "").rstrip("/")
 SECRET = os.environ.get("FULFIL_SECRET", "")
 MAX_PER_RUN = 40
 PRODUCTS = {  # produkt: (generator, grind, tillåtna språk)
-    "stjarnkarta": ("stjarnkarta", "kvalitetsgrind", ("en", "sv", "de")),
-    "formorkelse": ("formorkelse", "grind_formorkelse", ("en", "sv", "de", "es")),
+    "stjarnkarta": ("stjarnkarta", "kvalitetsgrind", ("en", "sv", "de", "fr")),
+    "formorkelse": ("formorkelse", "grind_formorkelse", ("en", "sv", "de", "es", "fr")),
     "himmelskalender": ("himmelskalender", "grind_himmelskalender", ("en", "sv", "de", "es")),
     "historisk": ("historisk", "grind_historisk", ("sv", "en")),
     "stadskarta": ("stadskarta", "grind_stadskarta", ("en", "sv", "de")),
     "karlekskarta": ("karlekskarta", "grind_karlekskarta", ("en", "sv", "de")),
+    "manfas": ("manfas", "grind_manfas", ("en", "sv", "de", "fr", "es")),
 }
+MANFAS_STYLES = ("mork", "ljus", "akvarell", "barnrum")
 RUN_BUDGET_S = int(os.environ.get("FULFIL_BUDGET_S", str(11 * 60)))
 EST_S = {"historisk": 900, "stadskarta": 420}  # uppskattad längsta tid per order (övriga ≈ 60 s)
 TEMPORARY = ("overpass misslyckades", "FTP-hämtning misslyckades")
@@ -122,6 +126,8 @@ def make_order(job):
             return None, "places_count"
         return {"id": job["id"], "product": product, "text": (job.get("text") or "").strip()[:40], "places": places,
                 "style": job.get("style") or "ljus", "place": places[0]["place"], "languages": [lang]}, None
+    if product == "manfas":
+        return make_manfas(job, lang)
     g = geocode(job["city"], "SE" if product == "historisk" else job.get("country", ""))
     if not g:
         return None, "city_not_found"
@@ -152,6 +158,44 @@ def make_order(job):
                  "place": job["city"].strip()[:40], "lat": round(lat, 4), "lon": round(lon, 4), "timezone": tz,
                  "languages": [lang]}
     return order, None
+
+
+def make_manfas(job, lang):
+    """Månfas-affischen: en person (text = namn) eller familj (people, 2–6). Tom ort/land hos en person = familjens."""
+    import re
+    _, lander = load_geo()
+    mode = "family" if job.get("mode") == "family" else "single"
+    if mode == "family":
+        people = [p for p in (job.get("people") or [])[:6] if (p.get("name") or "").strip() or p.get("date")]
+    else:
+        people = [{"name": job.get("text", ""), "date": job.get("date", ""), "time": job.get("time") or "",
+                   "city": job.get("city", ""), "country": job.get("country", "")}]
+    if (mode == "family" and not 2 <= len(people) <= 6) or not people:
+        return None, "people_count"
+    moons = []
+    for p in people:
+        city = (p.get("city") or "").strip() or (job.get("city") or "").strip()
+        country = (p.get("country") or "").strip() or (job.get("country") or "").strip()
+        if norm(country) not in lander:  # okänt land = fel ort hellre än en gissning
+            return None, "city_not_found"
+        g = geocode(city, country)
+        if not g:
+            return None, "city_not_found"
+        d = str(p.get("date") or "")
+        if not re.fullmatch(r"\d{4}-\d{2}-\d{2}", d) or not ("1900-01-01" <= d <= "2050-12-31"):
+            return None, "date_out_of_range"
+        t = str(p.get("time") or "")
+        t = t[:5] if re.fullmatch(r"\d{2}:\d{2}(:\d{2})?", t) and int(t[:2]) < 24 and int(t[3:5]) < 60 else None
+        name = (p.get("name") or "").strip()[:40]
+        if not name:
+            return None, "people_count"
+        moons.append({"name": name, "date": d, "time": t, "place": city[:40], "country": country[:40],
+                      "lat": round(g[1], 4), "lon": round(g[2], 4), "timezone": g[5]})
+    return {"id": job["id"], "product": "manfas", "mode": mode, "text": (job.get("text") or "").strip()[:40] if mode == "family" else "",
+            "heading": job.get("heading") if job.get("heading") in ("born", "wedding", "met", "none") else "born",
+            "style": job.get("style") if job.get("style") in MANFAS_STYLES else "mork",
+            "row": job.get("row") if mode == "single" and job.get("row") in ("none", "month", "week") else "none",
+            "place": moons[0]["place"], "moons": moons, "languages": [lang]}, None
 
 
 def produce(order, workdir):

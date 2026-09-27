@@ -12,3 +12,6 @@ fulfil/data/lm/index/
 fulfil/data/nasa/*.js
 fulfil/data/nasa/*.html
 fulfil/verktyg/nasa_jsex_referens.js
+live_*.pdf
+livetest.json
+*.log

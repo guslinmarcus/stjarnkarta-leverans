@@ -4,7 +4,7 @@ const TTL = 60 * 60 * 24 * 90; // allt raderas efter 90 dagar
 
 const TEXT_OK = /^[\p{Script=Latin}\p{N}\s.,&'’!?\-:+/()"“”]*$/u;
 const TEXT_MSG = "Please use letters, numbers and simple punctuation only (symbols like hearts or emoji cannot be printed).";
-const LANGS = { en: "English", sv: "Svenska", de: "Deutsch" };
+const LANGS = { en: "English", sv: "Svenska", de: "Deutsch", fr: "Français" };
 // Stilar = samma som fulfil/stjarnkarta.py STYLES. Annonsens instruktions-PDF länkar hit med ?style=&palette=&frame=&font=
 const STYLES = {
   midnatt: { label: "Midnight & gold", palettes: { guld: "Gold on midnight blue" } },
@@ -31,7 +31,8 @@ p{color:var(--mute)}form,.card{background:var(--card);padding:24px;border-radius
 label{display:block;margin:14px 0 4px;font:14px/1.3 system-ui,sans-serif;color:var(--gold)}
 input,select{width:100%;padding:11px;border-radius:6px;border:1px solid #33405f;background:#0d1426;color:var(--ink);font:16px system-ui,sans-serif}
 button,.btn{display:inline-block;margin-top:22px;padding:13px 22px;border:0;border-radius:6px;background:var(--gold);color:#111;font:600 16px system-ui,sans-serif;text-decoration:none;cursor:pointer}
-.row{display:flex;gap:12px}.row>div{flex:1}.err{color:var(--err);font:15px system-ui,sans-serif}
+.row{display:flex;gap:12px}.card+.card{margin-top:18px}.card h2{font-weight:normal;font-size:21px;margin:0 0 6px}
+.btn2{display:inline-block;margin-top:10px;padding:10px 18px;border:1px solid var(--gold);border-radius:6px;color:var(--gold);font:600 15px system-ui,sans-serif;text-decoration:none}.row>div{flex:1}.err{color:var(--err);font:15px system-ui,sans-serif}
 small{color:var(--mute);font:13px system-ui,sans-serif}`;
 
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -83,11 +84,14 @@ const REASONS = {
   address_not_found: "We could not find that address in Sweden. Please check the street name and number (or leave the address empty to centre the maps on the town) and submit again.",
   not_covered: "Lantmäteriet's historical maps do not cover this place well enough for your poster. Please contact us via Etsy messages and we will refund you.",
   places_count: "Please enter at least two places, each with a town, a country and a date.",
+  date_out_of_range: "Please enter a date between 1 January 1900 and 31 December 2050.",
+  people_count: "Family poster: please enter 2 to 6 people, each with a name and a date of birth (and a town and country, or the family's town above).",
 };
 
 // --- Fler produkter: samma kö, fältet "product" väljer generator + grind i fulfil/fulfil.py (PRODUCTS).
 // Länk från annonsens instruktions-PDF: /?p=formorkelse  eller  /?p=himmelskalender
 const LANGS4 = { en: "English", sv: "Svenska", de: "Deutsch", es: "Español" };
+const LANGS5 = { ...LANGS4, fr: "Français" }; // förmörkelsen har franska (fulfil PRODUCTS)
 const PRODUCTS = {
   formorkelse: {
     h1: "Create your solar eclipse guide",
@@ -96,7 +100,7 @@ const PRODUCTS = {
     button: "Create my eclipse guide", ready: "Your eclipse guide is ready",
     readyNote: "Pages 1–3: your guide (A4). Page 4: your poster (A3 – also prints well at A4 and A2). The link works for 90 days.",
     creating: "Your eclipse guide is being created", creatingText: (c) => `We are calculating the eclipse as seen from ${c}.`,
-    file: "solar-eclipse-2027.pdf", langs: LANGS4,
+    file: "solar-eclipse-2027.pdf", langs: LANGS5,
   },
   himmelskalender: {
     h1: "Create your 2027 sky calendar",
@@ -172,6 +176,74 @@ Object.assign(PRODUCTS, {
     validate: (v) => (v.places.length >= 2 && v.places.every((p) => p.city && p.country && /^\d{4}-\d{2}-\d{2}$/.test(p.date)) ? "" : REASONS.places_count),
   },
 });
+// --- Månfas-affischen (fulfil/manfas.py + grind_manfas.py). Länk: /?p=manfas  (valfritt &style=&mode=family&row=&heading=)
+const MOON_STYLES = { mork: "Midnight & gold", ljus: "Minimal light", akvarell: "Watercolour", barnrum: "Nursery pastel" };
+const MOON_ROWS = { none: "No extra row", month: "The Moon every day of that month", week: "The Moon the week around the day" };
+const MOON_HEADINGS = { born: "The Moon on the day you were born", wedding: "The Moon on our wedding day", met: "The Moon on the night we met", none: "No heading" };
+const MOON_MODES = { single: "One person", family: "Family – 2 to 6 people" };
+const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+const TIME_RE = /^\d{2}:\d{2}$/;
+function moonPick(src) {
+  const pick = (o, k, d) => (Object.prototype.hasOwnProperty.call(o, src[k]) ? src[k] : d);
+  return { style: pick(MOON_STYLES, "style", "mork"), row: pick(MOON_ROWS, "row", "none"), heading: pick(MOON_HEADINGS, "heading", "born"),
+           mode: pick(MOON_MODES, "mode", "single") };
+}
+Object.assign(PRODUCTS, {
+  manfas: {
+    h1: "Create your Moon phase poster",
+    intro: "Enter the date (and the time, if you know it) and the place. We calculate the exact phase of the Moon at that moment, how much of it was lit and which side – as seen from that place. Without a time we show the Moon at 12:00 noon. Usually ready within an hour.",
+    textLabel: "Name on the poster (family poster: an optional title, e.g. “The Lind family”)", textPh: "Olivia",
+    button: "Create my Moon poster", ready: "Your Moon phase poster is ready",
+    readyNote: "Page 1: A3 portrait. Page 2: the same poster in A4. Vector PDF – also prints sharp at A2 and 30×40 / 50×70 cm (crop). The link works for 90 days.",
+    creating: "Your Moon phase poster is being created", creatingText: (c) => `We are calculating the Moon as seen from ${c}.`,
+    file: "moon-phase-poster.pdf", langs: LANGS5,
+    fields: (v) => {
+      const m = moonPick(v);
+      const pl = v.people || [];
+      let fam = "";
+      for (let i = 0; i < 6; i++) {
+        const p = pl[i] || {};
+        fam += `<p style="margin:18px 0 0"><small>Person ${i + 1}${i < 2 ? "" : " (optional)"}</small></p>
+<div class="row"><div><label for="pn${i}">Name</label><input id="pn${i}" name="pn${i}" maxlength="40" value="${esc(p.name)}"></div><div><label for="pd${i}">Date of birth</label><input id="pd${i}" name="pd${i}" type="date" min="1900-01-01" max="2050-12-31" value="${esc(p.date)}"></div></div>
+<div class="row"><div><label for="pt${i}">Time (optional)</label><input id="pt${i}" name="pt${i}" type="time" value="${esc(p.time)}"></div><div><label for="pc${i}">Town (if not the family's)</label><input id="pc${i}" name="pc${i}" maxlength="60" value="${esc(p.city)}"></div><div><label for="pk${i}">Country</label><input id="pk${i}" name="pk${i}" maxlength="60" value="${esc(p.country)}"></div></div>`;
+      }
+      return `<label for="mode">Poster</label>${sel("mode", MOON_MODES, m.mode)}
+<div id="single"><div class="row"><div><label for="date">Date</label><input id="date" name="date" type="date" min="1900-01-01" max="2050-12-31" value="${esc(v.date)}"></div>
+<div><label for="time">Time (optional)</label><input id="time" name="time" type="time" value="${esc(v.time)}"></div></div>
+<div class="row"><div><label for="heading">Heading</label>${sel("heading", MOON_HEADINGS, m.heading)}</div></div>
+<label for="row">Extra row</label>${sel("row", MOON_ROWS, m.row)}</div>
+${cityField(v)}<p><small>Family poster: this town is used for everyone who has no town of their own.</small></p>
+<label for="style">Style</label>${sel("style", MOON_STYLES, m.style)}
+<div id="family">${fam}</div>
+<script>(function(){var s=document.getElementById("mode"),a=document.getElementById("single"),b=document.getElementById("family");function u(){var f=s.value==="family";a.style.display=f?"none":"";b.style.display=f?"":"none";}s.addEventListener("change",u);u();})();</script>`;
+    },
+    parse: (f) => {
+      const m = moonPick(f);
+      const people = [];
+      if (m.mode === "family") {
+        for (let i = 0; i < 6; i++) {
+          const name = String(f[`pn${i}`] || "").trim().slice(0, 40), date = String(f[`pd${i}`] || "");
+          const time = String(f[`pt${i}`] || "").slice(0, 5), city = String(f[`pc${i}`] || "").trim().slice(0, 60), country = String(f[`pk${i}`] || "").trim().slice(0, 60);
+          if (name || date || city) people.push({ name, date, time: TIME_RE.test(time) ? time : "", city, country });
+        }
+      }
+      const time = String(f.time || "").slice(0, 5);
+      return { ...m, date: String(f.date || ""), time: TIME_RE.test(time) ? time : "", people, row: m.mode === "family" ? "none" : m.row };
+    },
+    validate: (v) => {
+      if (!v.city || !v.country) return "Please fill in the town and the country.";
+      const inRange = (d) => DATE_RE.test(d) && d >= "1900-01-01" && d <= "2050-12-31";
+      if (v.mode === "family") {
+        if (v.people.length < 2 || v.people.length > 6 || !v.people.every((p) => p.name && inRange(p.date))) return REASONS.people_count;
+        if (!v.people.every((p) => TEXT_OK.test(p.name) && TEXT_OK.test(p.city) && TEXT_OK.test(p.country))) return TEXT_MSG;
+        return "";
+      }
+      if (!v.text) return "Please enter the name for the poster.";
+      if (!inRange(v.date)) return REASONS.date_out_of_range;
+      return "";
+    },
+  },
+});
 function normProduct(s) {
   const k = String(s || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
   if (["historisk", "history", "address-through-time", "genom-tiden"].includes(k)) return "historisk";
@@ -179,6 +251,7 @@ function normProduct(s) {
   if (["karlekskarta", "love-map", "lovemap", "love-story-map"].includes(k)) return "karlekskarta";
   if (["formorkelse", "solformorkelse", "eclipse", "solar-eclipse"].includes(k)) return "formorkelse";
   if (["himmelskalender", "kalender", "calendar", "sky-calendar"].includes(k)) return "himmelskalender";
+  if (["manfas", "moon", "moon-phase", "moonphase", "birth-moon", "mondphase", "fase-lunar", "phase-lune"].includes(k)) return "manfas";
   return "";
 }
 function productForm(prod, v = {}, error = "") {
@@ -200,6 +273,55 @@ ${P.fields ? P.fields(v) : `<div class="row"><div><label for="city">City or town
 </form>`);
 }
 
+// --- Efter nedladdning: be om en ärlig recension + visa EN relaterad produkt för samma datum/ort.
+// Etsys regler (Reviews/Extortion/Shilling): inga motprestationer för en recension, inget tryck, inte be om "5 stjärnor".
+// Därför: ingen rabatt, ingen koppling mellan recension och erbjudande, och erbjudandet visas för alla köpare lika.
+// Erbjudandet länkar bara till Etsy-annonsen (ingen egen kassa). Listing-id fylls i när annonserna är publicerade –
+// antingen här eller via miljövariabeln ETSY_LISTINGS (JSON {"formorkelse":"123..."}). Saknas id visas inget erbjudande
+// (DEV_PLACEHOLDERS=1 visar platshållare vid lokal test).
+const LISTING_IDS = {
+  stjarnkarta: "LISTING_ID_STJARNKARTA", stjarnkarta_manfas: "LISTING_ID_STJARNKARTA_MANFAS",
+  formorkelse: "LISTING_ID_FORMORKELSE", himmelskalender: "LISTING_ID_HIMMELSKALENDER",
+  historisk: "LISTING_ID_HISTORISK", stadskarta: "LISTING_ID_STADSKARTA", karlekskarta: "LISTING_ID_KARLEKSKARTA",
+};
+const ECLIPSE_BEFORE = "2027-08-02"; // förmörkelseguiden erbjuds bara före händelsen
+function crossSell(job, today = new Date().toISOString().slice(0, 10)) {
+  const prod = PRODUCTS[job.product] ? job.product : "stjarnkarta";
+  const c = esc(job.city), d = esc(job.date);
+  const eclipse = today < ECLIPSE_BEFORE ? { key: "formorkelse", title: "The solar eclipse over " + c,
+    text: `On 2 August 2027 the Moon covers the Sun across Europe and North Africa. A personal guide for ${c} shows the exact times and how much of the Sun is covered there.` } : null;
+  const calendar = { key: "himmelskalender", title: "The sky of 2027 over " + c,
+    text: `A printable 2027 calendar calculated for ${c}: Moon phases, sunrise and sunset, meteor showers and the planets.` };
+  const table = {
+    stjarnkarta: job.style === "manfas" ? [eclipse, calendar] : [
+      { key: "stjarnkarta_manfas", title: "The same night, with the Moon",
+        text: `A star map for ${c} on ${d} with a row of seven Moons showing the Moon's phase that week.` }, eclipse],
+    formorkelse: [calendar],
+    himmelskalender: [eclipse, { key: "stjarnkarta", title: "The night sky over " + c,
+      text: `A star map of the sky over ${c} on a date that matters to you.` }],
+    historisk: [{ key: "stadskarta", title: c + " today, as a city map", text: `A minimal poster of the streets, water and parks of ${c} from OpenStreetMap.` }],
+    stadskarta: [(job.country || "").toLowerCase().match(/^(sverige|sweden|se)$/)
+      ? { key: "historisk", title: c + " through time", text: `The same place on historical maps from the 1800s to today, next to today's map.` }
+      : { key: "stjarnkarta", title: "The night sky over " + c, text: `A star map of the sky over ${c} on a date that matters to you.` }],
+    karlekskarta: [{ key: "stjarnkarta", title: "The sky over your first place",
+      text: `A star map of the night sky over ${c} on ${esc((job.places && job.places[0] && job.places[0].date) || "the date of your first place")}.` }],
+  };
+  return (table[prod] || []).filter(Boolean)[0] || null;
+}
+function listingUrl(key, env) {
+  let ids = LISTING_IDS;
+  try { if (env && env.ETSY_LISTINGS) ids = { ...LISTING_IDS, ...JSON.parse(env.ETSY_LISTINGS) }; } catch (e) {}
+  const id = String(ids[key] || "");
+  if (/^\d{6,}$/.test(id)) return `https://www.etsy.com/listing/${id}`;
+  return env && env.DEV_PLACEHOLDERS === "1" ? `https://www.etsy.com/listing/${id}` : "";
+}
+function afterDownload(job, env) {
+  const review = `<div class="card"><h2>A small favour</h2><p>We are a very small shop. If you have a minute once you have seen your file, an honest review on Etsy helps other people find us – whatever you think of it.</p><a class="btn2" href="https://www.etsy.com/your/purchases" rel="noopener">Leave a review on Etsy</a><p><small>Etsy: Your account › Purchases and reviews. Something not right? Send us an Etsy message and we will fix it.</small></p></div>`;
+  const x = crossSell(job), href = x && listingUrl(x.key, env);
+  const offer = x && href ? `<div class="card"><h2>${x.title}</h2><p>${x.text}</p><a class="btn2" href="${esc(href)}" rel="noopener">See it on Etsy</a><p><small>Available to everyone, whether or not you leave a review.</small></p></div>` : "";
+  return review + offer;
+}
+
 function newId() {
   const b = new Uint8Array(12); crypto.getRandomValues(b);
   return [...b].map((x) => x.toString(16).padStart(2, "0")).join("");
@@ -216,12 +338,12 @@ export default {
 
     if (req.method === "GET" && p === "/") {
       const prod = normProduct(url.searchParams.get("p"));
-      if (prod) return productForm(prod);
+      if (prod) return productForm(prod, prod === "manfas" ? moonPick(Object.fromEntries(url.searchParams)) : {});
       return form(pickStyle(Object.fromEntries(url.searchParams)));
     }
     if (req.method === "GET" && p === "/privacy") return page("Privacy & terms", `<h1>Privacy &amp; terms</h1>
 <p><b>Who we are.</b> This service is run by Moodly Sverige, a Swedish non-profit association (org.nr 802556-3845), Vaxholm, Sweden. Surplus funds support work for children's well-being.</p>
-<p><b>What we collect.</b> Only what you enter: Etsy order number, the text for your poster, place, date, time and language. We use it only to create and deliver your file (star map, eclipse guide or sky calendar).</p>
+<p><b>What we collect.</b> Only what you enter: Etsy order number, the text for your poster, place, date, time and language. We use it only to create and deliver your file (star map, eclipse guide, sky calendar, map or Moon phase poster).</p>
 <p><b>How long.</b> Everything, including your file, is deleted automatically after 90 days.</p>
 <p><b>Sharing.</b> We never sell or share your details. They are processed by our hosting providers (Cloudflare, GitHub) only to run the service.</p>
 <p><b>Your rights.</b> You can ask us to delete your data earlier or ask what we store, via the contact address below or Etsy messages.</p>
@@ -279,12 +401,12 @@ export default {
       if (PRODUCTS[job.product]) {
         const P = PRODUCTS[job.product];
         if (job.status === "ready")
-          return page(P.ready, `<div class="card"><h1>${esc(P.ready)}</h1><p>${job.text ? esc(job.text) + " · " : ""}${esc(job.city)}</p><a class="btn" href="/f/${job.id}">Download PDF</a><p><small>${esc(P.readyNote)}</small></p></div>`);
+          return page(P.ready, `<div class="card"><h1>${esc(P.ready)}</h1><p>${job.text ? esc(job.text) + " · " : ""}${esc(job.city)}</p><a class="btn" href="/f/${job.id}">Download PDF</a><p><small>${esc(P.readyNote)}</small></p></div>${afterDownload(job, env)}`);
         if (job.status === "failed") return productForm(job.product, job, REASONS[job.reason] || REASONS.internal);
         return page(P.creating, `<div class="card"><h1>${esc(P.creating)}</h1><p>${esc(P.creatingText(job.city))} This is usually done within an hour.</p><p>Bookmark this page – it updates by itself.</p></div>`, 60);
       }
       if (job.status === "ready")
-        return page("Your star map is ready", `<div class="card"><h1>Your star map is ready</h1><p>${esc(job.text)} · ${esc(job.city)} · ${esc(job.date)}</p><a class="btn" href="/f/${job.id}">Download PDF</a><p><small>Prints sharp at A4, A3 and A2. The link works for 90 days.</small></p></div>`);
+        return page("Your star map is ready", `<div class="card"><h1>Your star map is ready</h1><p>${esc(job.text)} · ${esc(job.city)} · ${esc(job.date)}</p><a class="btn" href="/f/${job.id}">Download PDF</a><p><small>Prints sharp at A4, A3 and A2. The link works for 90 days.</small></p></div>${afterDownload(job, env)}`);
       if (job.status === "failed")
         return form(job, REASONS[job.reason] || REASONS.internal);
       return page("Creating your star map", `<div class="card"><h1>Your star map is being created</h1><p>We are calculating the sky over ${esc(job.city)} on ${esc(job.date)}. This is usually done within an hour.</p><p>Bookmark this page – it updates by itself.</p></div>`, 60);

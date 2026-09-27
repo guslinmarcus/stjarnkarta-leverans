@@ -78,12 +78,12 @@ def main(n):
             orders.append({"id": f"{sname}_{i:02d}", "name": rng.choice(NAMES), "place": place[:40], "lat": round(lat, 4),
                            "lon": round(lon, 4), "timezone": tz,
                            "datetime_local": f"{y}-{rng.randint(1, 12):02d}-{rng.randint(1, 28):02d}T{rng.randint(0, 23):02d}:{rng.choice([0, 15, 30, 45]):02d}",
-                           "languages": [rng.choice(["en", "sv", "de"])], "style": sname,
+                           "languages": [rng.choice(["en", "sv", "de", "fr"])], "style": sname,
                            "palette": rng.choice(list(st["palettes"])),
                            "frame": rng.choice(list(stjarnkarta.FRAMES)) if rng.random() < 0.5 else None,
                            "font": rng.choice(list(stjarnkarta.FONT_SETS)) if rng.random() < 0.4 else None})
     t = time.perf_counter()
-    with Pool(max(2, os.cpu_count() - 1)) as pool:
+    with Pool(int(os.environ.get("TEST_PROCESSER", max(2, os.cpu_count() - 1)))) as pool:  # TEST_PROCESSER=2 vid lite minne
         res = pool.map(one, orders)
         muts = [("fel_stjarnfarg", OUT / "akvarell_00_meta.json"), ("flyttad_stjarna", OUT / "minimal_00_meta.json"),
                 ("fel_manfas", OUT / "manfas_00_meta.json"), ("fel_tid", OUT / "hjarta_00_meta.json"),
