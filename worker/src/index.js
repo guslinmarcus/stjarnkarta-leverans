@@ -21,7 +21,7 @@ function page(title, body, refresh) {
   return new Response(
     `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">` +
       (refresh ? `<meta http-equiv="refresh" content="${refresh}">` : "") +
-      `<meta name="robots" content="noindex"><title>${esc(title)}</title><style>${css}</style></head><body><main>${body}</main></body></html>`,
+      `<meta name="robots" content="noindex"><title>${esc(title)}</title><style>${css}</style></head><body><main>${body}<footer style="margin-top:40px;font:13px/1.5 system-ui,sans-serif;color:#8a8577">Moodly Sverige (org.nr 802556-3845) · Contact: <a style="color:#b9b3a3" href="mailto:guslinmarcus@gmail.com">guslinmarcus@gmail.com</a> · <a style="color:#b9b3a3" href="/privacy">Privacy &amp; terms</a><br>The term 'Etsy' is a trademark of Etsy, Inc. This application uses the Etsy API but is not endorsed or certified by Etsy, Inc.</footer></main></body></html>`,
     { headers: { "content-type": "text/html; charset=utf-8" } }
   );
 }
@@ -66,6 +66,14 @@ export default {
     const p = url.pathname;
 
     if (req.method === "GET" && p === "/") return form();
+    if (req.method === "GET" && p === "/privacy") return page("Privacy & terms", `<h1>Privacy &amp; terms</h1>
+<p><b>Who we are.</b> This service is run by Moodly Sverige, a Swedish non-profit association (org.nr 802556-3845), Vaxholm, Sweden. Surplus funds support work for children's well-being.</p>
+<p><b>What we collect.</b> Only what you enter: Etsy order number, the text for your poster, place, date, time and language. We use it only to create and deliver your star map.</p>
+<p><b>How long.</b> Everything, including your file, is deleted automatically after 90 days.</p>
+<p><b>Sharing.</b> We never sell or share your details. They are processed by our hosting providers (Cloudflare, GitHub) only to run the service.</p>
+<p><b>Your rights.</b> You can ask us to delete your data earlier or ask what we store, via the contact address below or Etsy messages.</p>
+<p><b>Terms.</b> The star map is calculated from astronomical data for the place and time you enter. Please check your details before submitting; you can resubmit up to three times per order.</p>`);
+
 
     if (req.method === "POST" && p === "/order") {
       const f = Object.fromEntries((await req.formData()).entries());
