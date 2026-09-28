@@ -31,7 +31,7 @@ from reportlab.pdfgen import canvas
 import flygdata as FD
 import kartlayout as KL
 
-GENERATOR_VERSION = "flygresekarta/1.0.0"
+GENERATOR_VERSION = "flygresekarta/1.0.1"
 FEL = os.environ.get("FELINJEKTION", "")
 ROOT = Path(__file__).parent
 
@@ -188,6 +188,16 @@ def render(order, flights, airports, lang, path, style, fmt):
         x, y = merc(lon, lat)
         return fx + (x - X0) * sx, fy + (y - Y0) * sy
 
+    # kartans mittlongitud (kontinuerlig/upplindad grad) - används för att skifta landmassor och flygplatser
+    # till RÄTT varv runt jorden när en flerbensresa gör att kartans utsnitt spänner över mer än vanliga ±180°
+    # (t.ex. jorden-runt-resor som ARN-JFK-LAX-NRT-ARN) - se BESLUTSLOGG.md 2026-09-28/29 "kontinuerlig longitud".
+    center_deg = math.degrees((X0 + X1) / 2)
+
+    def wrap_shift(lon_deg):
+        """Multipeln av 360 som flyttar lon_deg (vanlig -180..180-gradering) till det varv som ligger närmast
+        kartans mittlongitud, så tp() (byggd på den upplindade/kontinuerliga extent()) placerar punkten rätt."""
+        return round((center_deg - lon_deg) / 360.0) * 360.0
+
     c.saveState()
     cl = c.beginPath(); cl.rect(fx, fy, fw, fh); c.clipPath(cl, stroke=0, fill=0)
     c.setFillColorRGB(*S["ocean"]); c.rect(fx, fy, fw, fh, stroke=0, fill=1)
@@ -195,20 +205,25 @@ def render(order, flights, airports, lang, path, style, fmt):
     c.setFillColorRGB(*S["land"]); c.setStrokeColorRGB(*S["border"]); c.setLineWidth(0.35 * (W / (297 * mm))); c.setLineJoin(1)
     for f in load_land():
         for ring in f["rings"]:
-            lons = [p[0] for p in ring]
+            shift = wrap_shift(ring[0][0]) if ring else 0.0
+            lons = [p[0] + shift for p in ring]
             if max(lons) < lon_min or min(lons) > lon_max:
                 continue
             p = c.beginPath()
             for i, (lo, la) in enumerate(ring):
-                (p.moveTo if i == 0 else p.lineTo)(*tp(lo, la))
+                (p.moveTo if i == 0 else p.lineTo)(*tp(lo + shift, la))
             p.close()
             c.drawPath(p, stroke=1, fill=1)
-    # storcirkelbågarna, en flygning i taget, delade vid datumlinjen
+    # storcirkelbågarna, en flygning i taget. Ritas ur den UPPLINDADE (kontinuerliga) longituden - samma
+    # koordinatsystem som tp()/extent() bygger på - annars hamnar bågen/flygplatsen fel så fort en resa gör
+    # att longituden måste "linda om" mer än en gång (se dokstycket ovanför wrap_shift()). dela_vid_antimeridian
+    # är ofarlig kvar (ingen konsekutiv punkt hoppar > 180° i upplindad data, så den delar aldrig här) men
+    # lämnas kvar som extra skyddsnät om unwrap_legs någon gång skulle missa ett hopp.
     linewidth = 1.5 * (W / (297 * mm))
     c.setStrokeColorRGB(*S["line"]); c.setLineWidth(linewidth); c.setLineCap(1)
     leg_ends = []
     for i, raw in enumerate(raw_legs):
-        pts_ll = raw
+        pts_ll = unwrapped[i]
         if FEL == "fel_ordning" and i == 0 and len(raw_legs) > 1:
             pts_ll = list(reversed(pts_ll))
         for seg in dela_vid_antimeridian(pts_ll):
@@ -230,6 +245,16 @@ def render(order, flights, airports, lang, path, style, fmt):
         c.drawPath(plane_path(c, mx, my, ang, 3.2 * mm * (W / (297 * mm))), stroke=1, fill=1)
     c.restoreState()
 
+    # flygplatsens kontinuerliga (upplindade) longitud per flygning - samma koordinatsystem som bågarna
+    # ovan, se dokstycket vid wrap_shift(). En flygplats som förekommer flera gånger (t.ex. hemmaflygplatsen
+    # i en jorden-runt-resa) kan ha olika upplindat varv beroende på var i resan den nås - det spelar ingen
+    # roll här, bara att det valda varvet ligger inom kartans utsnitt (vilket extent() garanterar per konstruktion).
+    cont_lonlat = {}
+    for i, (a, b) in enumerate(flights):
+        leg = unwrapped[i]
+        cont_lonlat[(round(a["lat"], 4), round(a["lon"], 4))] = leg[0]
+        cont_lonlat[(round(b["lat"], 4), round(b["lon"], 4))] = leg[-1]
+
     # unika flygplatser, markörer + etiketter (greedig placering, krockar inte med varandra eller markörerna)
     seen, uniq = set(), []
     for a, b in flights:
@@ -239,7 +264,8 @@ def render(order, flights, airports, lang, path, style, fmt):
                 seen.add(k); uniq.append(ap)
     pos = []
     for i, ap in enumerate(uniq):
-        lat, lon = ap["lat"], ap["lon"]
+        key = (round(ap["lat"], 4), round(ap["lon"], 4))
+        lat, lon = cont_lonlat.get(key, (ap["lat"], ap["lon"]))
         if FEL == "fel_koordinat" and i == 0 and len(uniq) > 1:
             lat, lon = lat + 3.0, lon + 3.0
         pos.append(tp(lon, lat))

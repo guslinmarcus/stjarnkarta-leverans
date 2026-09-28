@@ -114,9 +114,23 @@ def run(meta_path):
         chk(f"{lang}_sidformat", abs(page.rect.width - W_mm * 72 / 25.4) < 2 and abs(page.rect.height - H_mm * 72 / 25.4) < 2,
             f"{page.rect.width:.0f}×{page.rect.height:.0f} pt (förväntat {W_mm}×{H_mm} mm)")
 
-        def tp(lon, lat):
+        # kartans mittlongitud (grader) - en flerbensresa (t.ex. ARN-JFK-LAX-NRT-ARN) kan göra att generatorns
+        # extent spänner över mer än ±180° (jorden-runt), då måste även grindens EGEN punkt lindas till samma
+        # varv som kartan innan den jämförs mot den ritade PDF:en - annars hamnar den oberoende kontrollpunkten
+        # fel även om generatorn ritade rätt. Se flygresekarta.py:wrap_shift() för samma resonemang på ritsidan.
+        center_deg = math.degrees((X0 + X1) / 2)
+
+        def wrap_lon(lon_deg):
+            return lon_deg + round((center_deg - lon_deg) / 360.0) * 360.0
+
+        def tp0(lon, lat):
+            """Projicerar EXAKT den longitud som ges, utan att linda den - för sökningen i flera kandidatvarv
+            (se markörkontrollen nedan, som annars alltid skulle landa på samma varv oavsett k)."""
             x = math.radians(lon); y = math.log(math.tan(math.pi / 4 + math.radians(max(-80, min(80, lat))) / 2))
             return fx + (x - X0) / (X1 - X0) * fw, fy + (y - Y0) / (Y1 - Y0) * fh
+
+        def tp(lon, lat):
+            return tp0(wrap_lon(lon), lat)
 
         # 2. markörer: fyllda cirklar (kurvor i ritoperationerna) i routefärgen, skiljs från flygplansikonerna (bara räta linjer)
         drawings = page.get_drawings()
@@ -134,8 +148,11 @@ def run(meta_path):
             f"{len(markers)} markörer i PDF:en, {len(uniq_airports)} unika flygplatser")
         errs = []
         for ap in uniq_airports:
-            x_true, y_true = tp(ap["lon"], ap["lat"])
-            best = min((math.hypot(mx - x_true, my - y_true) for mx, my in markers), default=9e9)
+            # en flygplats som besöks flera gånger i en flerbensresa (t.ex. hemmaflygplatsen i en jorden-runt-
+            # resa) kan legitimt vara ritad vid VILKET SOM HELST av de varv den nås på (se wrap_lon ovan) -
+            # generatorn väljer ett, grinden kräver bara att NÅGOT giltigt varv matchar en ritad markör.
+            cands = [tp0(wrap_lon(ap["lon"]) + k * 360.0, ap["lat"]) for k in (-2, -1, 0, 1, 2)]
+            best = min((math.hypot(mx - cx, my - cy) for cx, cy in cands for mx, my in markers), default=9e9)
             errs.append((ap.get("iata") or ap.get("icao"), round(best / 72 * 25.4, 3)))
         worst = max((e for _, e in errs), default=99)
         chk(f"{lang}_markorer_pa_ratt_koordinat", worst <= 1.0, f"största avvikelse {worst:.2f} mm (gräns 1,0 mm): {errs}")
