@@ -581,6 +581,37 @@ async function authed(req, env) {
   return req.headers.get("authorization") === `Bearer ${env.FULFIL_SECRET}`;
 }
 
+// --- Snabb leverans (Marcus-uppdrag 2026-09-28, se NATTLOGG "DAGLIG TESTKUND"): cronen i stjarnkarta-leverans
+// (*/10 min) stryps av GitHub till några körningar/dygn i praktiken, så en riktig köpare kunde få vänta timmar.
+// När en order skapas ber vi GitHub Actions köra "nu" via workflow_dispatch - cronen finns kvar oförändrad som
+// reserv om dispatchen skulle misslyckas (nätfel, saknad token, GitHub nere). Kräver Worker-secreten
+// GH_DISPATCH_TOKEN (fine-grained PAT, ENDAST detta repo, Actions:write) - se LEVERANS_DISPATCH.md för hur den
+// skapas. Saknas secreten (t.ex. innan Marcus lagt in den) är detta ett ofarligt no-op, precis som idag.
+const GH_DISPATCH_REPO = "guslinmarcus/stjarnkarta-leverans";
+const KARTOR_PRODUKTER = new Set(["historisk", "stadskarta", "golfbana", "brollopskarta"]); // leverera-kartor.yml (fulfil_kartor.yml), resten -> leverera.yml (fulfil.yml)
+async function dispatchLeverans(env, product) {
+  if (!env || !env.GH_DISPATCH_TOKEN || !env.JOBS) return;
+  const workflow = KARTOR_PRODUKTER.has(product) ? "fulfil_kartor.yml" : "fulfil.yml";
+  const lockKey = `dispatch:lock:${workflow}`;
+  try {
+    if (await env.JOBS.get(lockKey)) return; // debounce: högst 1 dispatch/minut per workflow (flera ordrar samma minut delar samma körning)
+    await env.JOBS.put(lockKey, "1", { expirationTtl: 60 });
+    await fetch(`https://api.github.com/repos/${GH_DISPATCH_REPO}/actions/workflows/${workflow}/dispatches`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${env.GH_DISPATCH_TOKEN}`,
+        Accept: "application/vnd.github+json",
+        "X-GitHub-Api-Version": "2022-11-28",
+        "User-Agent": "stjarnkarta-leverans-worker",
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ ref: "main" }),
+    });
+  } catch (e) {
+    // best effort - misslyckas anropet kör cronen ändå senare, precis som idag
+  }
+}
+
 // --- Julkulan (tryck/julkula_kedja.py + tryck/kallor.py:Portal.ladda_upp_proof, ursprungligt förslag i
 // tryck/julkula_portal_tillagg.js, inlagt 2026-09-28): kundfoto-uppladdning + digital proof (godkänn/ändra,
 // max 3 omgångar). Enda produkten som tar emot riktiga kundfoton - övriga produkter ovan tar bara text. Rent
@@ -645,7 +676,7 @@ ${svarad ? `<div class="card"><p>Thank you - we have received your answer for ro
 }
 
 export default {
-  async fetch(req, env) {
+  async fetch(req, env, ctx) {
     const url = new URL(req.url);
     const p = url.pathname;
     let m; // flyttad hit (2026-09-28, julkula-tillägget): används nu av rutter före /order också
@@ -675,6 +706,7 @@ export default {
                     style: v.style, format: v.format, kontakt: v.kontakt, status: "pending", created: new Date().toISOString() };
       await env.JOBS.put(`job:${id}`, JSON.stringify(job), { expirationTtl: TTL });
       await env.JOBS.put(`pending:${id}`, "1", { expirationTtl: TTL });
+      ctx.waitUntil(dispatchLeverans(env, "foreningskalender"));
       return Response.redirect(`${url.origin}/s/${id}`, 303);
     }
     if (req.method === "GET" && p === "/privacy") return page("Privacy & terms", `<h1>Privacy &amp; terms</h1>
@@ -763,6 +795,7 @@ export default {
         await env.JOBS.put(`pending:${id}`, "1", { expirationTtl: TTL });
         await env.JOBS.put(`order:${v.order}`, String(used + 1), { expirationTtl: TTL });
         await env.JOBS.put(`orderjob:${v.order}:${id}`, "1", { expirationTtl: TTL }); // index för tryckkedjan (fysiska annonser)
+        ctx.waitUntil(dispatchLeverans(env, prod));
         return Response.redirect(`${url.origin}/s/${id}`, 303);
       }
       const v = {
@@ -783,6 +816,7 @@ export default {
       await env.JOBS.put(`pending:${id}`, "1", { expirationTtl: TTL });
       await env.JOBS.put(`order:${v.order}`, String(used + 1), { expirationTtl: TTL });
       await env.JOBS.put(`orderjob:${v.order}:${id}`, "1", { expirationTtl: TTL }); // index för tryckkedjan (fysiska annonser)
+      ctx.waitUntil(dispatchLeverans(env, "stjarnkarta"));
       return Response.redirect(`${url.origin}/s/${id}`, 303);
     }
 
