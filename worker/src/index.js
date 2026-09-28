@@ -581,10 +581,74 @@ async function authed(req, env) {
   return req.headers.get("authorization") === `Bearer ${env.FULFIL_SECRET}`;
 }
 
+// --- Julkulan (tryck/julkula_kedja.py + tryck/kallor.py:Portal.ladda_upp_proof, ursprungligt förslag i
+// tryck/julkula_portal_tillagg.js, inlagt 2026-09-28): kundfoto-uppladdning + digital proof (godkänn/ändra,
+// max 3 omgångar). Enda produkten som tar emot riktiga kundfoton - övriga produkter ovan tar bara text. Rent
+// ADDITIVT: egna nycklar (julkulafoto:<token> för bildbytes, job:julkula-<ordernummer> för jobbet), rör aldrig
+// job:<24-hex-id>-formatet ovan. ÅTERANVÄNDER dock orderjob:<order>:<id>-indexet oförändrat, så den redan
+// driftade GET /api/order/<ordernummer> (nedan) hittar julkula-jobbet utan att den koden ändras.
+const JULKULA_TTL = 60 * 60 * 24 * 60; // 60 dagar - GDPR (Marcus-uppdrag 2026-09-28): kundfoton raderas automatiskt
+const JULKULA_BILDTYPER = { "image/jpeg": 1, "image/png": 1, "image/webp": 1 };
+const JULKULA_MAX_BYTES = 10 * 1024 * 1024;
+
+const julkulaJobId = (ordernummer) => `julkula-${ordernummer}`;
+
+async function julkulaJobb(env, ordernummer) {
+  return JSON.parse((await env.JOBS.get(`job:${julkulaJobId(ordernummer)}`)) || "null");
+}
+
+async function julkulaSpara(env, ordernummer, patch) {
+  const id = julkulaJobId(ordernummer);
+  const jobb = (await julkulaJobb(env, ordernummer)) || { id, product: "julkula", order: ordernummer, created: new Date().toISOString() };
+  Object.assign(jobb, patch);
+  await env.JOBS.put(`job:${id}`, JSON.stringify(jobb), { expirationTtl: JULKULA_TTL });
+  await env.JOBS.put(`orderjob:${ordernummer}:${id}`, "1", { expirationTtl: JULKULA_TTL }); // samma index /api/order/ redan läser
+  return jobb;
+}
+
+function julkulaToken() {
+  return [...crypto.getRandomValues(new Uint8Array(16))].map((b) => b.toString(16).padStart(2, "0")).join("");
+}
+
+async function julkulaSparaBild(env, bytes, contentType, extraMeta) {
+  const token = julkulaToken();
+  await env.JOBS.put(`julkulafoto:${token}`, bytes, { expirationTtl: JULKULA_TTL, metadata: { content_type: contentType, ...extraMeta } });
+  return token;
+}
+
+function julkulaB64ToBytes(b64) {
+  const bin = atob(String(b64 || ""));
+  const bytes = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+  return bytes;
+}
+
+function julkulaProofPage(ref, jobb, error) {
+  const proof = jobb && jobb.proof;
+  if (!proof) return page("Not ready yet", `<h1>Not ready yet</h1><p>Your ornament preview is not ready yet - we will email you a link as soon as it is (usually within a day or two).</p>`);
+  const svarad = jobb.proof_svar && jobb.proof_svar.omgang === proof.omgang;
+  return page("Your ornament preview", `
+<h1>Your ornament preview</h1>
+<p>Round ${proof.omgang} of 3. Please look closely at both sides before approving - once you approve, we send it to production.</p>
+<div class="row"><div><img src="${esc(proof.framsida_url)}" alt="Front" style="width:100%;border-radius:10px"></div>
+<div><img src="${esc(proof.baksida_url)}" alt="Back" style="width:100%;border-radius:10px"></div></div>
+${error ? `<p class="err">${esc(error)}</p>` : ""}
+${svarad ? `<div class="card"><p>Thank you - we have received your answer for round ${proof.omgang}. We will be in touch by email.</p></div>` : `
+<form method="post" action="/proof/${esc(ref)}">
+<input type="hidden" name="omgang" value="${proof.omgang}">
+<button type="submit" name="val" value="godkann">Approve</button>
+<p style="margin:18px 0 0"><small>Not quite right? Describe what to change, then request a change instead:</small></p>
+<label for="feedback">What should we change (optional)</label><input id="feedback" name="feedback" maxlength="500">
+<button type="submit" name="val" value="andra" class="btn2">Request a change</button>
+</form>`}
+<p><small>Up to 3 rounds of changes are included. Moodly Sverige.</small></p>`);
+}
+
 export default {
   async fetch(req, env) {
     const url = new URL(req.url);
     const p = url.pathname;
+    let m; // flyttad hit (2026-09-28, julkula-tillägget): används nu av rutter före /order också
 
     if (req.method === "GET" && p === "/") {
       const prod = normProduct(url.searchParams.get("p"));
@@ -618,9 +682,63 @@ export default {
 <p><b>What we collect.</b> Only what you enter: Etsy order number, the text for your poster, place(s), date, time, language and – for golf course maps – the course, hole and player name. We use it only to create and deliver your file (star map, eclipse guide, sky calendar, map, find-your-way map, golf course map or Moon phase poster). The club calendar (<a style="color:#d9c9a0" href="/kalender">/kalender</a>) is sold directly to sports clubs, not through Etsy – see its own <a style="color:#d9c9a0" href="/kalender-villkor">terms</a> for what is collected and deleted.</p>
 <p><b>How long.</b> Everything, including your file, is deleted automatically after 90 days.</p>
 <p><b>Sharing.</b> We never sell or share your details. They are processed by our hosting providers (Cloudflare, GitHub) only to run the service. For a physical print (poster, framed print or canvas), your print file and delivery address are also shared with our print partner Gelato, who prints and ships the item directly to you.</p>
+<p><b>Custom ornament photos.</b> If you order a custom cartoon ornament, the photo(s) you upload are used only to make your ornament and its preview, and shared with our print partner Printify for manufacturing. They are deleted automatically 60 days after upload - sooner than our other files.</p>
 <p><b>Your rights.</b> You can ask us to delete your data earlier or ask what we store, via the contact address below or Etsy messages.</p>
 <p><b>Terms.</b> The star map is calculated from astronomical data for the place and time you enter. Please check your details before submitting; you can resubmit up to three times per order.</p>`);
 
+
+    // --- Julkulan: kundfoto-uppladdning (publik, kopplad till Etsy-ordernumret - tryck/julkula_kedja.py:s_vantar_foto)
+    if (req.method === "POST" && p === "/julkula/foto") {
+      let body;
+      try { body = await req.json(); } catch (e) { return new Response("bad json", { status: 400 }); }
+      const ordernummer = String(body.ordernummer || "").replace(/\D/g, "");
+      if (!/^\d{6,14}$/.test(ordernummer)) return new Response("ogiltigt ordernummer", { status: 400 });
+      const bilder = Array.isArray(body.bilder) ? body.bilder : [];
+      if (!bilder.length || bilder.length > 2) return new Response("1-2 bilder krävs", { status: 400 });
+      const sparade = [];
+      for (const b of bilder) {
+        const ct = String((b && b.content_type) || "");
+        if (!JULKULA_BILDTYPER[ct]) return new Response("filtyp (endast jpeg/png/webp)", { status: 400 });
+        let bytes;
+        try { bytes = julkulaB64ToBytes(b && b.data_base64); } catch (e) { return new Response("ogiltig bilddata", { status: 400 }); }
+        if (!bytes.byteLength) return new Response("tom bild", { status: 400 });
+        if (bytes.byteLength > JULKULA_MAX_BYTES) return new Response("för stor fil (max 10 MB)", { status: 413 });
+        const typ = ["framsida", "baksida"].includes(b.typ) ? b.typ : "framsida";
+        const token = await julkulaSparaBild(env, bytes, ct, { ordernummer, typ });
+        sparade.push({ typ, url: `${url.origin}/julkula/f/${token}` });
+      }
+      const jobb = await julkulaJobb(env, ordernummer);
+      const foton = (jobb && jobb.foton) || [];
+      for (const s of sparade) {
+        const i = foton.findIndex((f) => f.typ === s.typ);
+        if (i >= 0) foton[i] = s; else foton.push(s);
+      }
+      await julkulaSpara(env, ordernummer, { foton: foton.slice(-2) });
+      return Response.json({ ok: true, foton: sparade });
+    }
+    if (req.method === "GET" && (m = p.match(/^\/julkula\/f\/([0-9a-f]{32})$/))) {
+      const { value, metadata } = await env.JOBS.getWithMetadata(`julkulafoto:${m[1]}`, "arrayBuffer");
+      if (!value) return new Response("Not found", { status: 404 });
+      return new Response(value, { headers: { "content-type": (metadata && metadata.content_type) || "application/octet-stream",
+                                                "cache-control": "private, no-store", "x-robots-tag": "noindex" } });
+    }
+    // Proof-sidan kunden ser (ingen inloggning - länken i mejlet har ordernumret, samma mönster som /t/<token>.pdf)
+    if (req.method === "GET" && (m = p.match(/^\/proof\/(etsy-\d+-\d+)$/))) {
+      const jobb = await julkulaJobb(env, m[1].split("-")[1]);
+      return julkulaProofPage(m[1], jobb);
+    }
+    if (req.method === "POST" && (m = p.match(/^\/proof\/(etsy-\d+-\d+)$/))) {
+      const ordernummer = m[1].split("-")[1];
+      const f = Object.fromEntries((await req.formData()).entries());
+      const val = f.val === "andra" ? "andra" : f.val === "godkann" ? "godkann" : "";
+      const omgang = parseInt(f.omgang, 10);
+      if (!val || !omgang) return new Response("bad request", { status: 400 });
+      const jobb = await julkulaJobb(env, ordernummer);
+      if (!jobb || !jobb.proof || jobb.proof.omgang !== omgang)
+        return julkulaProofPage(m[1], jobb, "This preview round is no longer active - please check your latest email for a current link.");
+      await julkulaSpara(env, ordernummer, { proof_svar: { val, omgang, feedback: val === "andra" ? String(f.feedback || "").slice(0, 500) : undefined } });
+      return page("Thank you", `<h1>Thank you</h1><p>${val === "godkann" ? "Your ornament has been approved - we will send it to production." : "We received your requested change and will send you a new preview soon."}</p>`);
+    }
 
     if (req.method === "POST" && p === "/order") {
       const f = Object.fromEntries((await req.formData()).entries());
@@ -668,7 +786,6 @@ export default {
       return Response.redirect(`${url.origin}/s/${id}`, 303);
     }
 
-    let m;
     if (req.method === "GET" && (m = p.match(/^\/s\/([0-9a-f]{24})$/))) {
       const job = JSON.parse((await env.JOBS.get(`job:${m[1]}`)) || "null");
       if (!job) return page("Not found", `<h1>Link not found</h1><p>This link has expired or does not exist.</p><a class="btn" href="/">Create a star map</a>`);
@@ -732,6 +849,30 @@ export default {
         const token = [...crypto.getRandomValues(new Uint8Array(16))].map((b) => b.toString(16).padStart(2, "0")).join("");
         await env.JOBS.put(`tryck:${token}`, body, { expirationTtl: 60 * 60 * 24 * 60, metadata: { ref: m[1] } }); // 60 dagar
         return Response.json({ url: `${url.origin}/t/${token}.pdf` });
+      }
+      // Julkulan: agent-sessionen laddar upp de två genererade proof-bilderna (tryck/kallor.py:Portal.ladda_upp_proof,
+      // anropad av julkula_kedja.py:generera_och_skicka_proof EFTER tvåstegsmetoden STILTEST.md §14 - se den
+      // filens docstring för varför det steget inte körs obevakat).
+      if (req.method === "POST" && (m = p.match(/^\/api\/proof\/(\d{6,14})$/))) {
+        const ordernummer = m[1];
+        let body;
+        try { body = await req.json(); } catch (e) { return new Response("bad json", { status: 400 }); }
+        const omgang = parseInt(body.omgang, 10);
+        if (!(omgang >= 1 && omgang <= 3)) return new Response("bad omgang (1-3)", { status: 400 });
+        const urls = {};
+        for (const typ of ["framsida", "baksida"]) {
+          const b64 = body[`${typ}_base64`];
+          if (!b64) return new Response(`${typ}_base64 saknas`, { status: 400 });
+          const ct = JULKULA_BILDTYPER[body[`${typ}_content_type`]] ? body[`${typ}_content_type`] : "image/png";
+          let bytes;
+          try { bytes = julkulaB64ToBytes(b64); } catch (e) { return new Response(`ogiltig ${typ}_base64`, { status: 400 }); }
+          if (!bytes.byteLength) return new Response(`tom ${typ}`, { status: 400 });
+          if (bytes.byteLength > JULKULA_MAX_BYTES) return new Response("för stor fil (max 10 MB)", { status: 413 });
+          const token = await julkulaSparaBild(env, bytes, ct, { ordernummer, typ: `proof_${typ}` });
+          urls[typ] = `${url.origin}/julkula/f/${token}`;
+        }
+        await julkulaSpara(env, ordernummer, { proof: { omgang, framsida_url: urls.framsida, baksida_url: urls.baksida } });
+        return Response.json({ ok: true, framsida_url: urls.framsida, baksida_url: urls.baksida });
       }
       if (req.method === "GET" && p === "/api/queue") {
         const list = await env.JOBS.list({ prefix: "pending:", limit: 100 });
