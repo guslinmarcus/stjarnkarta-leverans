@@ -1,0 +1,22 @@
+{
+  "id": "test_fodelse_01",
+  "product": "fodelsetavla",
+  "variant": "barn",
+  "name": "Signe",
+  "date": "2024-06-15",
+  "time": "03:42",
+  "place": "Vaxholm",
+  "country": "Sverige",
+  "country_cc": "SE",
+  "lat": 59.4025,
+  "lon": 18.3529,
+  "timezone": "Europe/Stockholm",
+  "weight_g": 3450,
+  "height_cm": 51,
+  "text": "Vårt lilla under",
+  "family": ["Mamma Anna", "Pappa Erik", "Storasyster Wilma"],
+  "weather_requested": true,
+  "units": "metric",
+  "style": "natur",
+  "languages": ["sv", "en", "de"]
+}

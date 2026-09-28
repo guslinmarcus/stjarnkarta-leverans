@@ -6,6 +6,7 @@ worker/.wrangler/
 fulfil/ut/
 fulfil/ut_stiltest.log
 fulfil/data/cache/
+fulfil/data/smhi_cache/
 worker/.dev.vars
 fulfil/data/lm/cache/
 fulfil/data/lm/index/

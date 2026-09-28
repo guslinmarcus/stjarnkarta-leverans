@@ -328,12 +328,66 @@ Object.assign(PRODUCTS, {
     },
   },
 });
+// --- Födelsetavlan (fulfil/fodelsetavla.py + grind_fodelsetavla.py). Länk: /?p=fodelsetavla (valfritt &variant=husdjur&style=)
+const FODELSE_STYLES = { natur: "Nature (warm, animals)", nordisk_minimal: "Nordic minimal (light)", nattstjarna: "Night stars (dark)", ballong: "Balloon (pastel)" };
+const FODELSE_ACCENT = { rosa: "Blush pink", mint: "Soft mint" };
+const FODELSE_VARIANTS = { barn: "A baby / child", husdjur: "A pet (“gotcha day”)" };
+Object.assign(PRODUCTS, {
+  fodelsetavla: {
+    h1: "Create your birth poster",
+    intro: "Enter the name, birth date and time, and place. We calculate the real night sky and the Moon's exact phase at that minute, as seen from that place – plus weight, length and, for Swedish places, the day's measured weather from SMHI. Usually ready within an hour.",
+    textLabel: "Name", textPh: "Signe",
+    button: "Create my birth poster", ready: "Your birth poster is ready",
+    readyNote: "Page 1: A3 portrait. Page 2: the same poster in A4. Vector PDF – also prints sharp at A2 and 30×40 / 50×70 cm (crop). The link works for 90 days.",
+    creating: "Your birth poster is being created", creatingText: (c) => `We are calculating the night sky and the Moon over ${c}.`,
+    file: "birth-poster.pdf", langs: LANGS3,
+    fields: (v) => {
+      const variant = FODELSE_VARIANTS[v.variant] ? v.variant : "barn";
+      const fam = v.family || [];
+      let famH = "";
+      for (let i = 0; i < 4; i++) famH += `<div><label for="fam${i}">Family member ${i + 1} (optional)</label><input id="fam${i}" name="fam${i}" maxlength="30" value="${esc(fam[i])}" placeholder="${["Mum Anna", "Dad Erik", "Big sister Wilma", "Big brother Max"][i]}"></div>`;
+      return `<label for="variant">This poster is for</label>${sel("variant", FODELSE_VARIANTS, variant)}
+<div class="row"><div><label for="date">${variant === "husdjur" ? "The day they came home" : "Date of birth"}</label><input id="date" name="date" type="date" min="1900-01-01" max="2050-12-31" required value="${esc(v.date)}"></div>
+<div id="timewrap"><label for="time">Time (optional)</label><input id="time" name="time" type="time" value="${esc(v.time)}"></div></div>
+${cityField(v)}
+<label for="style">Style</label>${sel("style", FODELSE_STYLES, FODELSE_STYLES[v.style] ? v.style : "natur")}
+<div id="accentwrap"><label for="accent">Accent colour (balloon style only)</label>${sel("accent", FODELSE_ACCENT, FODELSE_ACCENT[v.accent] ? v.accent : "rosa")}</div>
+<div id="barnwrap">
+<div class="row"><div><label for="weight_g">Weight in grams (optional)</label><input id="weight_g" name="weight_g" type="number" min="200" max="8000" value="${esc(v.weight_g)}" placeholder="3450"></div>
+<div><label for="height_cm">Length in cm (optional)</label><input id="height_cm" name="height_cm" type="number" min="15" max="100" step="0.1" value="${esc(v.height_cm)}" placeholder="51"></div></div>
+<label for="note">One extra line on the poster (optional)</label><input id="note" name="note" maxlength="60" value="${esc(v.note)}" placeholder="Our little wonder">
+<p><small>Family names (optional, up to 4 – parents and siblings). Shown as a separate line.</small></p>${famH}
+<label style="display:flex;align-items:center;gap:8px;font-weight:normal"><input type="checkbox" name="weather" value="1" style="width:auto"${v.weather ? " checked" : ""}> Include the day's weather (temperature, rain, sunshine) – Swedish places only, from SMHI's open data</label>
+</div>
+<script>(function(){var s=document.getElementById("variant"),bw=document.getElementById("barnwrap"),st=document.getElementById("style"),aw=document.getElementById("accentwrap");function u(){var pet=s.value==="husdjur";bw.style.display=pet?"none":"";aw.style.display=st.value==="ballong"?"":"none";}s.addEventListener("change",u);st.addEventListener("change",u);u();})();</script>`;
+    },
+    parse: (f) => {
+      const variant = FODELSE_VARIANTS[f.variant] ? f.variant : "barn";
+      const family = [];
+      if (variant === "barn") for (let i = 0; i < 4; i++) { const n = String(f[`fam${i}`] || "").trim().slice(0, 30); if (n) family.push(n); }
+      const time = String(f.time || "").slice(0, 5);
+      return { variant, date: String(f.date || ""), time: variant === "husdjur" ? "" : (TIME_RE.test(time) ? time : ""),
+               style: FODELSE_STYLES[f.style] ? f.style : "natur", accent: FODELSE_ACCENT[f.accent] ? f.accent : "rosa",
+               weight_g: variant === "barn" ? String(f.weight_g || "").slice(0, 6) : "", height_cm: variant === "barn" ? String(f.height_cm || "").slice(0, 6) : "",
+               note: variant === "barn" ? String(f.note || "").trim().slice(0, 60) : "", family, weather: variant === "barn" && f.weather === "1" };
+    },
+    validate: (v) => {
+      if (!v.city || !v.country) return "Please fill in the town and the country.";
+      if (!(DATE_RE.test(v.date) && v.date >= "1900-01-01" && v.date <= "2050-12-31")) return REASONS.date_out_of_range;
+      if (!v.text) return "Please enter the name for the poster.";
+      if (!v.family.every((n) => TEXT_OK.test(n))) return TEXT_MSG;
+      if (v.note && !TEXT_OK.test(v.note)) return TEXT_MSG;
+      return "";
+    },
+  },
+});
 function normProduct(s) {
   const k = String(s || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
   if (["historisk", "history", "address-through-time", "genom-tiden"].includes(k)) return "historisk";
   if (["stadskarta", "city-map", "citymap", "city"].includes(k)) return "stadskarta";
   if (["karlekskarta", "love-map", "lovemap", "love-story-map"].includes(k)) return "karlekskarta";
   if (["formorkelse", "solformorkelse", "eclipse", "solar-eclipse"].includes(k)) return "formorkelse";
+  if (["fodelsetavla", "birth-poster", "birthposter", "birth-stats", "geburtsposter", "gotcha-day"].includes(k)) return "fodelsetavla";
   if (["himmelskalender", "kalender", "calendar", "sky-calendar"].includes(k)) return "himmelskalender";
   if (["golfbana", "golf", "golf-course", "golf-course-map", "golfplatz", "campo-de-golf"].includes(k)) return "golfbana";
   if (["manfas", "moon", "moon-phase", "moonphase", "birth-moon", "mondphase", "fase-lunar", "phase-lune"].includes(k)) return "manfas";

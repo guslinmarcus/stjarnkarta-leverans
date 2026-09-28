@@ -20,6 +20,11 @@ Jobbets fält "product" väljer generator + grind (saknas fältet = stjärnkarta
     brollopskarta     brollopskarta.py    + grind_brollopskarta.py   ("hitta hit"-karta, 1-3 platser med roll (vigsel/mottagning/
                                                                      hotell/parkering), datum, namn, stil; vägen mellan platserna
                                                                      beräknad på OSM:s vägnät (vagnat.py), språk en/sv/de)
+    fodelsetavla      fodelsetavla.py     + grind_fodelsetavla.py    ("Natten du föddes" – verklig stjärnhimmel + månfas vid
+                                                                     födelseminuten, namn, vikt, längd, valfri familjerad (<=4),
+                                                                     valfri text; för svenska orter valfritt SMHI-dygnsväder;
+                                                                     variant=husdjur ("gotcha day"); 4 stilar; enheter
+                                                                     metriskt/imperialt efter språk+land; språk sv/en/de)
 
 Kartprodukterna hämtar data över nätet (Lantmäteriets FTP, Overpass, Nominatim). Ett tillfälligt nätfel
 lämnar jobbet i kön (nytt försök nästa körning, högst ett dygn). Körningen har en tidsbudget så att
@@ -46,11 +51,15 @@ PRODUCTS = {  # produkt: (generator, grind, tillåtna språk)
     "manfas": ("manfas", "grind_manfas", ("en", "sv", "de", "fr", "es")),
     "golfbana": ("golfbana", "grind_golfbana", ("en", "sv", "de")),
     "brollopskarta": ("brollopskarta", "grind_brollopskarta", ("en", "sv", "de")),
+    "fodelsetavla": ("fodelsetavla", "grind_fodelsetavla", ("sv", "en", "de")),
 }
 GOLF_STYLES = ("klassisk", "vintage", "minimal", "mork")
 MANFAS_STYLES = ("mork", "ljus", "akvarell", "barnrum")
 BROLLOP_STYLES = ("klassisk", "natt", "sepia", "blueprint")  # samma stilar som stadskarta (osmdata.STYLES)
 BROLLOP_ROLES = ("vigsel", "mottagning", "hotell", "parkering", "fest", "annat")
+FODELSE_STYLES = ("natur", "nordisk_minimal", "nattstjarna", "ballong")
+FODELSE_ACCENT = ("rosa", "mint")
+FODELSE_IMPERIAL_LANDER = {"US", "GB"}  # se fodelsetavla.py:s dokstycke – sv/de alltid metriskt
 RUN_BUDGET_S = int(os.environ.get("FULFIL_BUDGET_S", str(11 * 60)))
 EST_S = {"historisk": 900, "stadskarta": 420, "golfbana": 420, "brollopskarta": 420}  # golfbana: regionregistret byggs ≤ 1 gång/månad (Sverige ≈ 3 min)  # uppskattad längsta tid per order (övriga ≈ 60 s)
 TEMPORARY = ("overpass misslyckades", "FTP-hämtning misslyckades")
@@ -144,6 +153,8 @@ def make_order(job):
         return make_golf(job, lang)
     if product == "brollopskarta":
         return make_brollop(job, lang)
+    if product == "fodelsetavla":
+        return make_fodelsetavla(job, lang)
     g = geocode(job["city"], "SE" if product == "historisk" else job.get("country", ""))
     if not g:
         return None, "city_not_found"
@@ -267,6 +278,64 @@ def make_brollop(job, lang):
     return {"id": job["id"], "product": "brollopskarta", "text": (job.get("text") or "").strip()[:40],
             "date": d or None, "style": job.get("style") if job.get("style") in BROLLOP_STYLES else "klassisk",
             "place": places[0]["place"], "places": places, "languages": [lang]}, None
+
+
+def fodelse_units(lang, cc):
+    """sv/de alltid metriskt. en: imperialt bara för USA/Storbritannien (se fodelsetavla.py:s dokstycke)."""
+    if lang != "en":
+        return "metric"
+    return "imperial" if (cc or "").upper() in FODELSE_IMPERIAL_LANDER else "metric"
+
+
+def make_fodelsetavla(job, lang):
+    """Födelsetavlan: variant=barn (namn, födelsedatum+tid, vikt, längd, valfri text, valfri familjerad <=4,
+    valfritt SMHI-väder bara för svenska orter) eller variant=husdjur ("gotcha day": namn + datumet det kom
+    hem, ingen tid/vikt/längd/väder/familj). Enheter sätts här (aldrig av kunden) enligt språk+land-regeln."""
+    import re
+    _, lander = load_geo()
+    variant = "husdjur" if job.get("variant") == "husdjur" else "barn"
+    city = (job.get("city") or "").strip()
+    country = (job.get("country") or "").strip()
+    if not city or norm(country) not in lander:
+        return None, "city_not_found"
+    g = geocode(city, country)
+    if not g:
+        return None, "city_not_found"
+    name, lat, lon, cc, pop, tz = g
+    d = str(job.get("date") or "")
+    if not (re.fullmatch(r"\d{4}-\d{2}-\d{2}", d) and "1900-01-01" <= d <= "2050-12-31"):
+        return None, "date_out_of_range"
+    person = (job.get("text") or job.get("name") or "").strip()[:40]
+    if not person:
+        return None, "internal"
+    style = job.get("style") if job.get("style") in FODELSE_STYLES else "natur"
+    order = {"id": job["id"], "product": "fodelsetavla", "variant": variant, "name": person, "date": d,
+             "place": city[:40], "country": country[:40], "country_cc": cc, "lat": round(lat, 4), "lon": round(lon, 4),
+             "timezone": tz, "style": style, "languages": [lang]}
+    if job.get("accent") in FODELSE_ACCENT:
+        order["accent"] = job["accent"]
+    if variant == "husdjur":
+        order["time"] = None
+        return order, None
+    t = str(job.get("time") or "")
+    order["time"] = t[:5] if re.fullmatch(r"\d{2}:\d{2}(:\d{2})?", t) and int(t[:2]) < 24 and int(t[3:5]) < 60 else None
+    try:
+        weight_g = int(job["weight_g"]) if job.get("weight_g") not in (None, "") else None
+    except (TypeError, ValueError):
+        weight_g = None
+    try:
+        height_cm = float(job["height_cm"]) if job.get("height_cm") not in (None, "") else None
+    except (TypeError, ValueError):
+        height_cm = None
+    if weight_g is not None and not (200 <= weight_g <= 8000):
+        return None, "internal"
+    if height_cm is not None and not (15 <= height_cm <= 100):
+        return None, "internal"
+    family = [(n or "").strip()[:30] for n in (job.get("family") or [])][:4]
+    family = [n for n in family if n]
+    order.update(weight_g=weight_g, height_cm=height_cm, text=(job.get("note") or "").strip()[:60], family=family,
+                 weather_requested=bool(job.get("weather")) and cc == "SE", units=fodelse_units(lang, cc))
+    return order, None
 
 
 def produce(order, workdir):
