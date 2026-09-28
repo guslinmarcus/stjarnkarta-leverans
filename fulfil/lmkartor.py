@@ -37,6 +37,8 @@ INDEX = LM / "kartblad_index.json.gz"
 FTP = "ftp://download-opendata.lantmateriet.se"
 CACHE_MAX_BYTES = int(os.environ.get("LM_CACHE_MAX_GB", "8")) * 1024 ** 3
 
+EDGE_M = {}  # se Sheet.edge_m – avstängt: att sträcka ut kantpixlar gav randiga ytor (prövat 2026-09-28)
+
 SERIES = {
     "hek": dict(namn="Häradsekonomiska kartan", skala="1:20 000", period="1859–1934", crs="sweref"),
     "gsk": dict(namn="Generalstabskartan", skala="1:100 000", period="1827–1971", crs="sweref"),
@@ -416,6 +418,9 @@ class Sheet:
                      "pixlar": [self.W, self.H]}
         self.dE = self.dN = 0.0  # passningsjustering (m): kartans innehåll vid (E+dE, N+dN) hör till (E, N)
         self.lut = None  # färgjustering mot grannbladen (3×256, uint8), sätts av harmonize(); None = originalfärger
+        # Häradsekonomiska skanningarna har vita/skuggade kantremsor (upp till ≈ 40 m) som syns som en ljus linje i
+        # skarven. Inom EDGE_M från bladkanten hämtas färgen från EDGE_M in i bladet (innehållet sträcks ut ≤ 40 m).
+        self.edge_m = EDGE_M.get(self.serie, 0.0)
         self.frame_px = None
         self.valid = (0, 0, self.W, self.H)
         if self.serie == "ek":
@@ -504,13 +509,13 @@ def resample(sheets, e0, n0, e1, n1, npx, paper=(238, 233, 220), with_who=False,
         who[m] = si
         if not m.any():
             continue
+        if s.edge_m:  # hämta färgen minst edge_m in från kanten (se Sheet.edge_m)
+            t_ = s.edge_m / s.px
+            C = np.clip(C, v0 + t_, v2 - 1 - t_); R = np.clip(R, v1 + t_, v3 - 1 - t_)
         c0, c1 = int(max(0, np.floor(C[m].min()) - 2)), int(min(s.W, np.ceil(C[m].max()) + 3))
         r0, r1 = int(max(0, np.floor(R[m].min()) - 2)), int(min(s.H, np.ceil(R[m].max()) + 3))
-        im = Image.open(s.path).crop((c0, r0, c1, r1)).convert("RGB")
         f = max(1, int(m_out / s.px))  # förminska först (lådfilter) för att undvika vikning
-        if f > 1:
-            im = im.reduce(f)
-        a = np.asarray(im, np.float32)
+        a = _crop_reduced(s.path, c0, r0, c1, r1, f)
         cc, rr = (C[m] - c0) / f - 0.5, (R[m] - r0) / f - 0.5  # kantkoordinat -> index för pixelcentrum
         for ch in range(3):
             v = np.clip(map_coordinates(a[..., ch], [rr, cc], order=1, mode="nearest"), 0, 255).astype(np.uint8)
@@ -523,6 +528,42 @@ def resample(sheets, e0, n0, e1, n1, npx, paper=(238, 233, 220), with_who=False,
     if with_who:
         return out, cov, andel, who
     return out, cov, andel
+
+
+def _raw_memmap(path):
+    """Okomprimerad RGB-TIFF med sammanhängande rader (Häradsekonomiska och Generalstabskartan på FTP:n) som
+    np.memmap – bara det utsnitt som behövs läses in (hela bladet avkodat är 75–130 MB per blad)."""
+    im = Image.open(path)
+    try:
+        W, H = im.size
+        if im.mode != "RGB" or not im.tile or any(t.codec_name != "raw" for t in im.tile):
+            return None
+        tiles = sorted(im.tile, key=lambda t: t.extents[1])
+        off0 = tiles[0].offset
+        for t in tiles:
+            if t.extents[0] != 0 or t.extents[2] != W or t.offset != off0 + t.extents[1] * W * 3:
+                return None
+        return np.memmap(path, np.uint8, "r", offset=off0, shape=(H, W, 3))
+    finally:
+        im.close()
+
+
+def _crop_reduced(path, c0, r0, c1, r1, f):
+    """Utsnitt (c0, r0)–(c1, r1) som float32, förminskat f gånger med lådfilter (samma som PIL reduce)."""
+    mm_ = _raw_memmap(path)
+    if mm_ is not None:
+        a = np.asarray(mm_[r0:r1, c0:c1], np.uint8)
+        del mm_
+        if f > 1:
+            h, w = a.shape[0] // f, a.shape[1] // f
+            if a.shape[0] % f or a.shape[1] % f:  # PIL reduce tar med kantpixlarna; gör likadant
+                return np.asarray(Image.fromarray(a).reduce(f), np.float32)
+            return a[:h * f, :w * f].reshape(h, f, w, f, 3).mean((1, 3), dtype=np.float32)
+        return a.astype(np.float32)
+    im = Image.open(path).crop((c0, r0, c1, r1)).convert("RGB")
+    if f > 1:
+        im = im.reduce(f)
+    return np.asarray(im, np.float32)
 
 
 def _quantile_lut(src, dst, nq=33):
@@ -540,61 +581,137 @@ def _quantile_lut(src, dst, nq=33):
     return lut
 
 
-def harmonize(sheets, e0, n0, e1, n1, npx=600, band_m=500.0, seam_m=60.0):
-    """Färgjustera bladen i ett utsnitt så att skarvarna inte syns. Bladet med störst andel är referens; övriga
-    justeras i tur och ordning (grannar till redan justerade först) med kvantilmatchning av pixlarna i ett band
-    (band_m) på var sida om den gemensamma kanten. Kurvorna sparas i sh.lut och används av resample().
-    Returnerar mätningen per skarv: medelfärgsskillnad (|ΔR|+|ΔG|+|ΔB|) i ett smalt band (seam_m) på var
-    sida om kanten, före och efter justeringen."""
-    from scipy.ndimage import binary_dilation, distance_transform_edt
+def seam_steps(arr, who, pairs, off_px=4, band_px=12, tile=48, min_n=12):
+    """Färgskarv mellan blad i och j: pixlar på avstånd off_px–band_px från grannbladet (≈ 50–150 m vid 800 px på
+    10 km; själva kantlinjen – en tunn ljus rand i skanningen – räknas inte) jämförs i rutor (tile × tile px) längs
+    kanten; medianen över rutorna (|ΔR|+|ΔG|+|ΔB|) = skarvens styrka. Medianen gör måttet okänsligt för att
+    kartans innehåll skiljer sig lokalt (en strand som korsar kanten)."""
+    from scipy.ndimage import distance_transform_edt
+    out = {}
+    H, W = who.shape
+    dist = {}
+    for i, j in pairs:
+        for k in (i, j):
+            if k not in dist:
+                dist[k] = distance_transform_edt(who != k)
+        mi = (who == i) & (dist[j] <= band_px) & (dist[j] > off_px); mj = (who == j) & (dist[i] <= band_px) & (dist[i] > off_px)
+        ti = (np.arange(H)[:, None] // tile) * 1000 + (np.arange(W)[None, :] // tile)
+        vals = []
+        for t in np.unique(ti[mi | mj]):
+            a_ = arr[mi & (ti == t)]; b_ = arr[mj & (ti == t)]
+            if len(a_) >= min_n and len(b_) >= min_n:  # papperstonen (85:e percentilen) – det som syns som en färgfläck
+                vals.append(float(np.abs(np.percentile(a_, 85, axis=0) - np.percentile(b_, 85, axis=0)).sum()))
+        out[(i, j)] = (float(np.median(vals)), len(vals)) if vals else (0.0, 0)
+    return out
+
+
+def _boundary_obs(arr, who, pairs, dist, off_px, band_px, tile, qs=(30, 60, 85), min_n=12):
+    """Per par och ruta längs kanten: färgkvantiler (per kanal) på var sida i bandet off_px–band_px."""
+    H, W = who.shape
+    tid = (np.arange(H)[:, None] // tile) * 10000 + (np.arange(W)[None, :] // tile)
+    obs = []
+    for i, j in pairs:
+        mi = (who == i) & (dist[j] <= band_px) & (dist[j] > off_px)
+        mj = (who == j) & (dist[i] <= band_px) & (dist[i] > off_px)
+        for t in np.unique(tid[mi | mj]):
+            a_, b_ = arr[mi & (tid == t)], arr[mj & (tid == t)]
+            if len(a_) >= min_n and len(b_) >= min_n:
+                obs.append((i, j, np.percentile(a_, qs, 0), np.percentile(b_, qs, 0)))  # (len(qs), 3)
+    return obs
+
+
+def harmonize(sheets, e0, n0, e1, n1, npx=1000, off_m=50.0, band_m=150.0, tile_m=600.0, reg=0.02):
+    """Färgjustera bladen i ett utsnitt så att skarvarna inte syns. Modell: varje blad får per färgkanal en
+    förskjutning (v' = v + o); bladet med störst andel är referens (o = 0). Per kant mäts papperstonens skillnad
+    (85:e percentilen i band 50–150 m på var sida, ruta för ruta om 600 m, median över rutorna). Alla blad löses
+    SAMTIDIGT (minsta kvadrat över alla kanter) – då går även 2×2-rutor ihop. (Kvantilkurvor och förstärkning
+    prövades 2026-09-28 men följde kartans innehåll och gav sämre skarvar.) En svag dragning mot
+    oförändrade färger (reg) hindrar överanpassning. Kurvorna sparas i sh.lut och används av resample().
+    Returnerar skarvmåttet (seam_steps: papperstonens skillnad, median längs kanten) före och efter."""
+    from scipy.ndimage import distance_transform_edt
     for s in sheets:
         s.lut = None
     if len(sheets) < 2:
-        return {"blad": len(sheets), "skarvar": []}
+        return {"blad": len(sheets), "skarvar": [], "max_efter": 0.0}
     img, cov, andel, who = resample(sheets, e0, n0, e1, n1, npx, with_who=True, raw=True)
     m_px = (e1 - e0) / npx
-    bw = max(2, int(round(band_m / m_px))); sw = max(1, int(round(seam_m / m_px)))
+    off, band, tile = off_m / m_px, band_m / m_px, max(8, int(tile_m / m_px))
     present = [i for i in range(len(sheets)) if (who == i).any()]
     if len(present) < 2:
-        return {"blad": len(present), "skarvar": []}
-    dist = {i: distance_transform_edt(who != i) for i in present}  # avstånd (px) till bladets yta
-    adj = {i: {j for j in present if j != i and ((who == i) & (dist[j] <= 1.5)).sum() >= 5} for i in present}
+        return {"blad": len(present), "skarvar": [], "max_efter": 0.0}
+    dist = {i: distance_transform_edt(who != i) for i in present}
+    pairs = sorted({(i, j) for i in present for j in present if i < j and ((who == i) & (dist[j] <= 1.5)).sum() >= 5})
     ref = max(present, key=lambda i: (who == i).sum())
-    done, order = {ref}, []
-    cur = img.astype(np.float32)
-    while len(done) < len(present):
-        cand = [i for i in present if i not in done and adj[i] & done]
-        if not cand:  # ej sammanhängande: justera mot referensen via hela utsnittet
-            cand = [i for i in present if i not in done]
-        i = max(cand, key=lambda k: ((who == k) & (np.minimum.reduce([dist[j] for j in done]) <= bw)).sum())
-        near_done = np.minimum.reduce([dist[j] for j in done])
-        src = cur[(who == i) & (near_done <= bw)]
-        dst = cur[np.isin(who, list(done)) & (dist[i] <= bw)]
-        if len(src) < 200 or len(dst) < 200:
-            src, dst = cur[who == i], cur[np.isin(who, list(done))]
-        lut = _quantile_lut(src, dst)
+    obs = _boundary_obs(img.astype(np.float32), who, pairs, dist, off, band, tile, qs=(85,))
+    var = [i for i in present if i != ref]
+    col = {i: k for k, i in enumerate(var)}
+    luts = {}
+    # per par: medianen över rutorna av papperstonens skillnad (robust mot att innehållet skiljer lokalt)
+    d = {}
+    for i, j, qa, qb in obs:
+        d.setdefault((i, j), []).append(qb[0] - qa[0])
+    if d and var:
+        x = np.arange(256, dtype=float)
+        for ch in range(3):
+            rows, rhs = [], []
+            for (i, j), lst in d.items():
+                if len(lst) < 2:
+                    continue
+                dij = float(np.median([v[ch] for v in lst])); wgt = np.sqrt(len(lst))
+                if os.environ.get("HARM_DEBUG"):
+                    vals_ch = [round(float(v[ch]), 1) for v in lst]
+                    print(f"HARM_DEBUG ch={ch} pair=({sheets[i].b['blad']},{sheets[j].b['blad']}) n={len(lst)} "
+                          f"dij_median={dij:.1f} per_tile={vals_ch}", flush=True)
+                r = np.zeros(len(var))
+                if i != ref:
+                    r[col[i]] += wgt
+                if j != ref:
+                    r[col[j]] -= wgt
+                rows.append(r); rhs.append(wgt * dij)          # o_i − o_j = x_j − x_i
+            for k in range(len(var)):                          # svag dragning mot oförändrat
+                r = np.zeros(len(var)); r[k] = reg; rows.append(r); rhs.append(0.0)
+            sol = np.linalg.lstsq(np.array(rows), np.array(rhs), rcond=None)[0]
+            for i in var:
+                o = float(np.clip(sol[col[i]], -80, 80))
+                luts.setdefault(i, np.tile(np.arange(256, dtype=np.uint8), (3, 1)))[ch] = np.clip(x + o, 0, 255).astype(np.uint8)
+    cur = img.astype(np.float32).copy()
+    for i, lut in luts.items():
         sheets[i].lut = lut
         m = who == i
         for ch in range(3):
             cur[..., ch][m] = lut[ch][img[..., ch][m]]
-        done.add(i); order.append(i)
-
-    def seam_diff(arr):
-        res = []
-        for i in present:
-            for j in adj[i]:
-                if j <= i:
-                    continue
-                a_ = arr[(who == i) & (dist[j] <= sw)]; b_ = arr[(who == j) & (dist[i] <= sw)]
-                if len(a_) < 20 or len(b_) < 20:
-                    continue
-                res.append(((sheets[i].b["blad"], sheets[j].b["blad"]), float(np.abs(a_.mean(0) - b_.mean(0)).sum())))
-        return res
-    before = dict(seam_diff(img.astype(np.float32))); after = dict(seam_diff(cur))
-    return {"blad": len(present), "referens": sheets[ref].b["blad"],
-            "skarvar": [{"blad": list(k), "fore": round(before[k], 1), "efter": round(after[k], 1)} for k in after],
-            "max_efter": round(max(after.values()), 1) if after else 0.0,
-            "lut_max_andring": {sheets[i].b["blad"]: int(np.abs(sheets[i].lut.astype(int) - np.arange(256)).max()) for i in order}}
+    imgf = img.astype(np.float32)
+    before = seam_steps(imgf, who, pairs, off_px=off, band_px=band, tile=tile)
+    after = seam_steps(cur, who, pairs, off_px=off, band_px=band, tile=tile)
+    # Skyddsnät: kartans innehåll (skog/öppen mark) skiljer sig lokalt längs en del kanter, så en global
+    # konstant förskjutning per blad kan råka göra en enskild kant SÄMRE (mätt som papperstonens skillnad) än
+    # att inte rätta alls. Om det händer: ta bort just det bladets förskjutning (tillbaka till oförändrat) –
+    # aldrig sämre för köparen än att låta bli att färgjustera. Kan i sig göra ANDRA kanter till samma blad
+    # sämre igen, så vi upprepar tills ingen kvarvarande rättning gör sin kant sämre.
+    changed = True
+    while changed:
+        changed = False
+        worst = None
+        for (i, j) in pairs:
+            fo = before[(i, j)][0]
+            af, n_af = after[(i, j)]
+            if n_af >= 3 and af > fo + 0.5:
+                for k in (i, j):
+                    if k in luts and (worst is None or af > worst[1]):
+                        worst = (k, af)
+        if worst:
+            k = worst[0]
+            del luts[k]
+            sheets[k].lut = None
+            m = who == k
+            cur[m] = imgf[m]
+            after = seam_steps(cur, who, pairs, off_px=off, band_px=band, tile=tile)
+            changed = True
+    sk = [{"blad": [sheets[i].b["blad"], sheets[j].b["blad"]], "fore": round(before[(i, j)][0], 1),
+           "efter": round(after[(i, j)][0], 1), "rutor": after[(i, j)][1]} for i, j in pairs]
+    return {"blad": len(present), "referens": sheets[ref].b["blad"], "modell": "förskjutning per kanal (papperstonen), gemensam minsta kvadrat över alla kanter",
+            "skarvar": sk, "max_efter": round(max((x["efter"] for x in sk if x["rutor"] >= 3), default=0.0), 1),
+            "lut_max_andring": {sheets[i].b["blad"]: int(np.abs(luts[i].astype(int) - np.arange(256)).max()) for i in luts}}
 
 
 def _in_quad(E, N, ring):

@@ -17,7 +17,7 @@ jobs:
         env:
           PORTAL_URL: ${{ secrets.PORTAL_URL }}
           FULFIL_SECRET: ${{ secrets.FULFIL_SECRET }}
-          FULFIL_SKIP: historisk,stadskarta,golfbana  # körs i fulfil_kartor.yml (längre tid + cache)
+          FULFIL_SKIP: historisk,stadskarta,golfbana,brollopskarta  # körs i fulfil_kartor.yml (längre tid + cache, samma OSM/Geofabrik-extrakt som stadskarta)
   keepalive:
     # schemalagda jobb stängs av efter 60 dagar utan commits – en commit i månaden håller dem vid liv
     if: github.event.schedule == '*/10 * * * *'

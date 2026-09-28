@@ -2,7 +2,8 @@ name: leverera-kartor
 # Kartprodukterna hämtar stora filer: Lantmäteriets blad (0,3–1 GB per ny plats, ≈ 3 MB/s) och Geofabrik-extrakt
 # (Sverige ≈ 820 MB, bearbetas med pyosmium ≈ 2–3 min). Eget jobb med längre tid och cache.
 # Golfbanekartan: regionens golfregister (fulfil/data/cache/golf) byggs ur samma Geofabrik-extrakt, ≈ 1–3 min, cachas.
-# Ordinarie jobbet (fulfil.yml) kör med FULFIL_SKIP=historisk,stadskarta,golfbana.
+# Hitta-hit-kartan (brollopskarta) läser samma Geofabrik/OSM-extrakt som stadskarta (osmdata.py) och hör hemma här också.
+# Ordinarie jobbet (fulfil.yml) kör med FULFIL_SKIP=historisk,stadskarta,golfbana,brollopskarta.
 on:
   schedule:
     - cron: "5,35 * * * *"
@@ -26,11 +27,12 @@ jobs:
             fulfil/data/cache/golf
           key: lm-${{ github.run_id }}
           restore-keys: lm-
+      - run: sudo apt-get update && sudo apt-get install -y tesseract-ocr tesseract-ocr-swe  # historisk: grind_historisk/bildkvalitet.avklippt_text (OCR); underkänns tyst utan
       - run: pip install -r fulfil/requirements.txt
       - run: python fulfil/fulfil.py
         env:
           PORTAL_URL: ${{ secrets.PORTAL_URL }}
           FULFIL_SECRET: ${{ secrets.FULFIL_SECRET }}
-          FULFIL_ONLY: historisk,stadskarta,golfbana
+          FULFIL_ONLY: historisk,stadskarta,golfbana,brollopskarta
           FULFIL_BUDGET_S: "2400"
           LM_CACHE_MAX_GB: "6"

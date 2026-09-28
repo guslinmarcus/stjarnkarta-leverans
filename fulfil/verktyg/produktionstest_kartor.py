@@ -7,6 +7,7 @@ Körning: python verktyg/produktionstest_kartor.py [historisk|stadskarta|karleks
 Historisk kräver nätet (Lantmäteriets FTP, Overpass, Nominatim) första gången; allt cachas sedan.
 """
 import json, os, subprocess, sys, time
+os.environ.setdefault("OPENBLAS_NUM_THREADS", "1")
 from datetime import datetime
 from pathlib import Path
 
@@ -52,7 +53,8 @@ KARL = [
         {"place": "Cape Town", "country": "South Africa", "cc": "ZA", "date": "2021-11-20", "label": "Married", "lat": -33.9258, "lon": 18.4232}]},
 ]
 INJ = {
-    "historisk": ["fel_blad", "forskjutning", "lag_upplosning", "saknad_kallhanvisning", "fel_artal", "tom_panel", "fel_adress"],
+    "historisk": ["fel_blad", "forskjutning", "lag_upplosning", "saknad_kallhanvisning", "fel_artal", "tom_panel", "fel_adress",
+                  "skarv", "tom_yta", "avklippt_etikett"],
     "stadskarta": ["saknad_attribution", "tomt_omrade", "fel_centrum", "lag_upplosning"],
     "karlekskarta": ["fel_koordinat", "fel_ordning", "fel_avstand", "saknad_kalla"],
 }

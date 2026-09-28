@@ -9,6 +9,11 @@ import json, os, subprocess, sys, time
 from datetime import datetime
 from pathlib import Path
 
+try:
+    sys.stdout.reconfigure(encoding="utf-8")  # Windows-konsolen är annars cp1252 och kraschar på t.ex. "ΔT"
+except Exception:
+    pass
+
 FULFIL = Path(__file__).resolve().parent.parent
 OUT = FULFIL.parent.parent / "prototyp" / "ut"
 sys.path.insert(0, str(FULFIL))

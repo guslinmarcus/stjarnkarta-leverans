@@ -16,6 +16,8 @@ GeoNames (CC BY 4.0, geonames.org) · Noto fonts (SIL OFL 1.1).
 | karlekskarta | `/?p=karlekskarta` | karlekskarta.py | grind_karlekskarta.py |
 | manfas | `/?p=manfas` (+ &style=&mode=family&row=&heading=) | manfas.py | grind_manfas.py (+ oberoende_mane.py) |
 | golfbana | `/?p=golfbana` (+ &style=klassisk/vintage/minimal/mork) | golfbana.py (+ golfdata.py) | grind_golfbana.py |
+| brollopskarta | `/?p=brollopskarta` (+ &style=klassisk/natt/sepia/blueprint) | brollopskarta.py (+ vagnat.py, osmdata.py) | grind_brollopskarta.py |
+| fodelsetavla | `/?p=fodelsetavla` (+ &variant=barn/husdjur ("gotcha day") &style=) | fodelsetavla.py | grind_fodelsetavla.py |
 
 Kartprodukternas data: Lantmäteriets öppna FTP (Häradsekonomiska, Generalstabs- och Ekonomiska kartan, CC0; bladindex i
 fulfil/data/lm/kartblad_index.json.gz, bladen cachas i fulfil/data/lm/cache/ – ej i git, 70–160 MB/blad) · OpenStreetMap ur
@@ -48,3 +50,12 @@ fulfil.geocode + osmextract.region_for_bbox (ordern använder registret för min
 Grind: `python fulfil/verktyg/test_golfkolla.py` – kollens svar = orderns svar för varje bana i indexet (0 fel krävs).
 Bygg om indexet och deploya Workern när registren byggts om (månadsvis). England byggs per grevskap (hela England-extraktet
 kräver > 1,4 GB minne; grevskapen ≈ 0,8 GB).
+
+Ursprungliga stjärnkartan (stjarnkarta.py + kvalitetsgrind.py): `python fulfil/verktyg/test_stjarnkarta.py` (flera
+verkliga ordrar + felinjektion, körs mot den driftade koden i fulfil/ – inte mot den äldre prototyp/produktionstest.py).
+
+Hitta-hit-kartan (brollopskarta, vägnätet i vagnat.py, samma Geofabrik/OSM-extrakt som stadskarta): `python
+fulfil/verktyg/test_brollopskarta.py`. Körs i fulfil_kartor.yml (FULFIL_ONLY/FULFIL_SKIP), inte det ordinarie 15-minutersjobbet.
+
+Födelsetavlan (fodelsetavla, stjärnhimmel+månfas vid födelseminuten, valfritt SMHI-dygnsväder för svenska orter,
+variant=husdjur ("gotcha day")): `python fulfil/verktyg/test_fodelsetavla.py [N=20]`.

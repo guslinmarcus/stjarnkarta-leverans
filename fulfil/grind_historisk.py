@@ -19,9 +19,16 @@
   6. Upplösning: ≥ 200 dpi ur originalskanningen i varje historisk kartruta, inbäddade bilder ≥ 250 dpi.
   7. Källhänvisning och osäkerhetstext tryckt (Lantmäteriet, CC0, © OpenStreetMap contributors, ODbL,
      GeoNames, "inte exakta"/"not exact"), inga tomma rutor, markören på adressen, inga saknade tecken.
+  8. (v0.2) Bildkvalitet i varje kartruta på affischen och i guidens närbilder (etsy/api/bildkvalitet.py, egen kod
+     utan koppling till generatorn): inga stora tomma rektanglar (saknade kartblad) och inga synliga färgskarvar.
+     Färgjusteringen mellan blad (generatorns kurvor i meta) ska vara monoton och måttlig och används när
+     georefereringen kontrolleras. Utelämnad Ekonomisk karta ska vara förklarad i PDF:en.
+  9. (v0.2) Text: all text inom sidan, varje kartrutas etikett och undertext inom rutans bredd och tryckt i sin helhet.
 
 Körning: python grind_historisk.py <ut>/<id>_meta.json -> <ut>/<id>_qc.json, exitkod 0 = GODKÄND
 """
+import os
+os.environ.setdefault("OPENBLAS_NUM_THREADS", "1")  # numpy/scipy: annars ≈ 700 MB privat minne i trådbuffertar (12 kärnor)
 import gzip
 import io
 import json
@@ -37,6 +44,9 @@ from pathlib import Path
 import fitz
 import numpy as np
 from PIL import Image
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import bildkvalitet as BQ  # noqa: E402  (vendorad kopia av agentbutik/etsy/api/bildkvalitet.py, se den filens dokstycke)
 
 Image.MAX_IMAGE_PIXELS = None
 ROOT = Path(__file__).parent
@@ -57,6 +67,17 @@ CLAIM_NA = {"hek": 500.0, "gsk": 400.0, "ek": 40.0}  # tryckt övre gräns när 
 ADJ_CAP = {"hek": 600.0, "gsk": 500.0, "ek": 60.0}   # största tillåtna justering (samma som produktens regel, egen kopia)
 OK_TEXT = {"sv": "kvarvarande avvikelse", "en": "remaining offset"}
 CHECK_M = {"hek": 150.0, "gsk": 200.0, "ek": 60.0}
+SEAM_MAX = 32.0  # största tillåtna färgskarv (papperston, |ΔR|+|ΔG|+|ΔB|, median längs kanten) mellan två blad i en ruta
+LUT_MAX = 90  # största tillåtna färgändring (nivåer av 255) i justeringskurvan mellan kartblad
+NOTE = {"ek": {"sv": "Ekonomiska kartan finns här", "en": "The Economic map exists here"},
+        "hek": {"sv": "Häradsekonomiska kartan finns här", "en": "The Economic map of the hundreds exists here"},
+        "gsk": {"sv": "Generalstabskartan finns här", "en": "The General Staff map exists here"}}
+
+
+def lut_ok(lut):
+    a = np.asarray(lut, int)
+    return a.shape == (3, 256) and bool((np.diff(a, axis=1) >= 0).all()) and int(np.abs(a - np.arange(256)).max()) <= LUT_MAX, \
+        int(np.abs(a - np.arange(256)).max()) if a.shape == (3, 256) else -1
 
 # ---------------------------------------------------------------- 1. egen projektion (Snyder)
 A_GRS80, F_GRS80 = 6378137.0, 1 / 298.257222101
@@ -424,6 +445,60 @@ def fit_decide(img, cov, osm, sq, T, m_px=10.0):
     return verdict, f"kartans vatten ligger bäst {math.hypot(best[1], best[2]) * m_px:.0f} m från dagens (öst {best[1] * m_px:.0f}, nord {-best[2] * m_px:.0f})"
 
 
+# ---------------------------------------------------------------- 8. skarvar längs de kända bladkanterna
+def owner_map(claimed, s, sq, n, idx_s, step=3):
+    """Vilket blad varje (var step:e) pixel i rutan kommer från – grindens egen väg (egen georeferering,
+    samma regel som produkten ska följa: djupast inne i ett blad vinner)."""
+    e0, n0, e1, n1 = sq
+    m_out = (e1 - e0) / n
+    jj = np.arange(0, n, step); ii = np.arange(0, n, step)
+    JJ, II = np.meshgrid(jj, ii)
+    Eo = e0 + (JJ + 0.5) * m_out; No = n1 - (II + 0.5) * m_out
+    best = np.zeros(JJ.shape); who = np.full(JJ.shape, -1)
+    for k, b in enumerate(claimed):
+        f, im, spx = source_mapper(s, b, idx_s[b["blad"]]["ring"])
+        Wi, Hi = im.size
+        C, R = f(Eo + b["dE"], No + b["dN"])
+        if s == "gsk":
+            q = np.array(b["ram_horn_px"]); x0_, y0_, x1_, y1_ = q[:, 0].min(), q[:, 1].min(), q[:, 0].max(), q[:, 1].max()
+        else:
+            tr = b.get("skannerkant_px", [0, 0, 0, 0])
+            x0_, y0_, x1_, y1_ = tr[2], tr[0], Wi - tr[3], Hi - tr[1]
+        depth = np.minimum.reduce([C - x0_, x1_ - C, R - y0_, y1_ - R]) * spx
+        ok = (depth > best) & (C >= 0) & (C < Wi - 1) & (R >= 0) & (R < Hi - 1)
+        best = np.where(ok, depth, best); who[ok] = k
+        im.close()
+    return who, m_out * step
+
+
+def seam_check(arr, who, m_cell, step=3, off_m=50.0, band_m=150.0, tile_m=600.0):
+    """Färgskarv mellan varje par grannblad i rutan: papperstonen (85:e percentilen per kanal) i band 50–150 m
+    på var sida om kanten jämförs i rutor om 600 m längs kanten; medianen = skarvens styrka."""
+    from scipy.ndimage import distance_transform_edt
+    ids = [k for k in np.unique(who) if k >= 0]
+    if len(ids) < 2:
+        return 0.0, []
+    sub = arr[::step, ::step][:who.shape[0], :who.shape[1]].astype(float)
+    dist = {k: distance_transform_edt(who != k) * m_cell for k in ids}
+    T = max(1, int(tile_m / m_cell))
+    tid = (np.arange(who.shape[0])[:, None] // T) * 10000 + (np.arange(who.shape[1])[None, :] // T)
+    out = []
+    for a in ids:
+        for b in ids:
+            if b <= a or not ((who == a) & (dist[b] <= m_cell * 1.5)).any():
+                continue
+            ma = (who == a) & (dist[b] > off_m) & (dist[b] <= band_m)
+            mb = (who == b) & (dist[a] > off_m) & (dist[a] <= band_m)
+            vals = []
+            for t in np.unique(tid[ma | mb]):
+                pa, pb = sub[ma & (tid == t)], sub[mb & (tid == t)]
+                if len(pa) >= 12 and len(pb) >= 12:
+                    vals.append(float(np.abs(np.percentile(pa, 85, 0) - np.percentile(pb, 85, 0)).sum()))
+            if len(vals) >= 3:
+                out.append((a, b, float(np.median(vals)), len(vals)))
+    return (max(v for _, _, v, _ in out) if out else 0.0), out
+
+
 # ---------------------------------------------------------------- körning
 def panel_array(page, bbox_pt, H):
     x0, y0, x1, y1 = bbox_pt
@@ -470,14 +545,29 @@ def source_mapper(serie, info, ring_geo):
     return f, im, w_m / w_px
 
 
-def frame_lines_dark(im, corners):
-    g = np.asarray(im.convert("L"))
+def src_pixels(path):
+    """Källbladets pixlar som (H, W, 3)-array utan att avkoda hela filen när den är okomprimerad (grindens egen
+    TIFF-läsning: sammanhängande rader från första radens offset). Annars hela bilden avkodad."""
+    im = Image.open(path)
+    try:
+        W, H = im.size
+        t = sorted(im.tile, key=lambda t: t.extents[1]) if im.tile else []
+        if im.mode == "RGB" and t and all(x.codec_name == "raw" and x.extents[0] == 0 and x.extents[2] == W
+                                          and x.offset == t[0].offset + x.extents[1] * W * 3 for x in t):
+            return np.memmap(path, np.uint8, "r", offset=t[0].offset, shape=(H, W, 3))
+        return np.asarray(im.convert("RGB"))
+    finally:
+        im.close()
+
+
+def frame_lines_dark(path, corners):
+    A = src_pixels(path)
     ok = tot = 0
     for a, b in zip(corners, corners[1:] + corners[:1]):
         for t in np.linspace(0.05, 0.95, 60):
             x, y = a[0] + t * (b[0] - a[0]), a[1] + t * (b[1] - a[1])
             xi, yi = int(round(x)), int(round(y))
-            win = g[max(0, yi - 3):yi + 4, max(0, xi - 3):xi + 4]
+            win = np.asarray(A[max(0, yi - 3):yi + 4, max(0, xi - 3):xi + 4], float).mean(-1)
             tot += 1
             ok += win.size and win.min() < 170  # kartytans innerlinje är tunn (1–2 px) men tydlig
     return ok / max(tot, 1)
@@ -488,6 +578,7 @@ def run(meta_path):
     meta = json.load(open(meta_path, encoding="utf-8"))
     o = meta["order"]; pt = meta["punkt"]; ut = meta["utsnitt"]
     checks = []
+    info = []
 
     def chk(name, ok, detail):
         checks.append({"grind": name, "ok": bool(ok), "detalj": detail})
@@ -577,7 +668,16 @@ def run(meta_path):
             ok_ex = (s == "hek" and (abs(asp) > 0.02 or not 1.6 <= w_m / W_ <= 2.4)) or (s == "gsk" and ("kartram" in ex["skal"] or "format" in ex["skal"] or not 8.5 <= w_m / W_ * 1.35 <= 16))
             chk(f"{s}_uteslutet_{ex['blad']}", ok_ex, f"generatorn: {ex['skal']}; grinden: format {100 * asp:.1f} %, {w_m / W_:.2f} m/px")
         miss = sorted(set(need) - have)
-        chk(f"{s}_alla_blad_med", not miss, f"{len(need)} blad täcker > 5 % av utsnittet; saknas: {miss}")
+        eb = meta.get("ek_beslut")
+        rutor = (eb or {}).get("affischens_rutor")
+        if eb and ((rutor is not None and s not in rutor) or (rutor is None and s == "ek" and not eb.get("anvands_pa_affischen"))):
+            chk(f"{s}_ej_i_huvudutsnittet", True, f"{s} visas inte i affischens huvudutsnitt (rutor {rutor}); förklaringen kontrolleras i PDF:en")
+        else:
+            chk(f"{s}_alla_blad_med", not miss, f"{len(need)} blad täcker > 5 % av utsnittet; saknas: {miss}")
+        for b in claimed:
+            if b.get("lut") is not None:
+                okl, mx = lut_ok(b["lut"])
+                chk(f"{s}_fargjustering_{b['blad']}", okl, f"färgkurva monoton och största ändring {mx} (gräns {LUT_MAX})")
         yr = {b["blad"]: b["ar"] for b in idx}
         bad_y = [b["blad"] for b in claimed if yr.get(b["blad"]) != b["ar"]]
         chk(f"{s}_artal_mot_index", not bad_y, "årtalen stämmer med Lantmäteriets bladindex" if not bad_y else f"fel årtal: {bad_y}")
@@ -592,8 +692,33 @@ def run(meta_path):
         chk(f"{lang}_kallhanvisning", not miss, "källor, licenser och osäkerhetstext finns" if not miss else f"saknas: {miss}")
         badch = text.count(chr(0)) + text.count(chr(0xFFFD))
         chk(f"{lang}_inga_saknade_tecken", badch == 0, f"{badch} tecken utan glyf")
-        chk(f"{lang}_sidor", len(doc) == 5 and abs(doc[0].rect.width - 841.9) < 2 and abs(doc[1].rect.width - 595.3) < 2,
-            f"{len(doc)} sidor, affisch {doc[0].rect.width:.0f}×{doc[0].rect.height:.0f} pt, guide {doc[1].rect.width:.0f} pt bred")
+        eb = meta.get("ek_beslut") or {}
+        n_exp = 5 if (not eb or eb.get("guidens_narbild")) else 4
+        chk(f"{lang}_sidor", len(doc) == n_exp and abs(doc[0].rect.width - 841.9) < 2 and abs(doc[1].rect.width - 595.3) < 2,
+            f"{len(doc)} sidor (väntat {n_exp}), affisch {doc[0].rect.width:.0f}×{doc[0].rect.height:.0f} pt, guide {doc[1].rect.width:.0f} pt bred")
+        rutor = eb.get("affischens_rutor") or (["gsk", "hek"] + (["ek"] if eb.get("anvands_pa_affischen") else []))
+        for s_ in ("gsk", "hek", "ek"):
+            if eb and s_ not in rutor and meta["blad"].get(s_):
+                chk(f"{lang}_{s_}_utelamnad_forklarad", NOTE[s_][lang] in text, f"PDF:en förklarar varför {s_} inte visas i hela utsnittet")
+        okt, dett = BQ.pdf_text_inom_sida(pdf)
+        chk(f"{lang}_text_inom_sidan", okt, dett)
+        # etiketter: inom rutans bredd och tryckta i sin helhet
+        spans = [sp for b_ in page.get_text("dict")["blocks"] for l_ in b_.get("lines", []) for sp in l_.get("spans", []) if sp["text"].strip()]
+        bad_lab = []
+        for pan in meta["geometry"][lang]["panels"]:
+            bx0, _, bx1, _ = pan["bbox_pt"]
+            for key in ("etikett", "undertext"):
+                t_ = (pan.get(key) or "").strip()
+                if not t_:
+                    continue
+                hit = [sp for sp in spans if sp["text"].strip() and sp["text"].strip() in t_ and abs(sp["bbox"][0] - bx0) < 1.5
+                       and H - sp["bbox"][3] < pan["bbox_pt"][1] and H - sp["bbox"][1] > pan["bbox_pt"][1] - 20 * 72 / 25.4]
+                printed = " ".join(sp["text"].strip() for sp in hit)
+                if not hit or printed.replace(" ", "") != t_.replace(" ", ""):
+                    bad_lab.append(f"{pan.get('ruta', pan['serie'])}.{key}: tryckt '{printed[:40]}' ≠ '{t_[:40]}'")
+                elif max(sp["bbox"][2] for sp in hit) > bx1 + 0.5:
+                    bad_lab.append(f"{pan.get('ruta', pan['serie'])}.{key} går {max(sp['bbox'][2] for sp in hit) - bx1:.1f} pt utanför rutan")
+        chk(f"{lang}_etiketter_hela_och_inom_rutan", not bad_lab, "; ".join(bad_lab[:4]) if bad_lab else "alla etiketter hela och inom rutans bredd")
         ptext = page.get_text()
         for pan in meta["geometry"][lang]["panels"]:
             s = pan["serie"]
@@ -605,16 +730,31 @@ def run(meta_path):
                 chk(f"{lang}_osm_panel_har_innehall", inkf > 0.03 and "OpenStreetMap" in ptext, f"bläck {inkf * 100:.1f} % av rutan")
                 continue
             claimed = meta["blad"].get(s, [])
+            ruta = pan.get("ruta", s)
+            e0, n0, e1, n1 = pan.get("square", ut["square"])
+            if pan.get("blad"):
+                claimed = [b for b in claimed if b["blad"] in pan["blad"]]
             if pan.get("kalla") == "saknas":
                 chk(f"{lang}_{s}_panel_ej_tom", not claimed, "rutan säger att kartan saknas" + (" – men blad finns!" if claimed else ""))
                 continue
             arr, emb_dpi = panel_array(page, pan["bbox_pt"], H)
             if arr is None:
-                chk(f"{lang}_{s}_panel_bild", False, "ingen bild hittades i rutan"); continue
-            chk(f"{lang}_{s}_inbaddad_upplosning", emb_dpi >= MIN_EMB_DPI, f"{emb_dpi:.0f} dpi (gräns {MIN_EMB_DPI})")
+                chk(f"{lang}_{ruta}_panel_bild", False, "ingen bild hittades i rutan"); continue
+            chk(f"{lang}_{ruta}_inbaddad_upplosning", emb_dpi >= MIN_EMB_DPI, f"{emb_dpi:.0f} dpi (gräns {MIN_EMB_DPI})")
+            pim = Image.fromarray(arr)
+            okr, detr, _ = BQ.tomma_rektanglar(pim, karta=True)
+            chk(f"{lang}_{ruta}_inga_tomma_ytor", okr, detr)
+            if len(claimed) > 1:
+                who_, mc_ = owner_map(claimed, s, (e0, n0, e1, n1), arr.shape[0], idx_all[s])
+                mxs, det_s = seam_check(arr, who_, mc_)
+                chk(f"{lang}_{ruta}_inga_synliga_skarvar", mxs <= SEAM_MAX,
+                    f"största färgskarv {mxs:.1f} (gräns {SEAM_MAX:.0f}); " + ", ".join(f"{claimed[a]['blad']}|{claimed[b]['blad']} {v:.0f}" for a, b, v, _ in det_s[:6]))
+            info.append({"ruta": f"{lang}_{ruta}", "generisk_skarvdetektor": BQ.skarvar(pim)[1]})
             # årtal i etiketten
             yrs = [idx_all[s][b["blad"]]["ar"].replace("-", "–") for b in claimed if b["blad"] in idx_all[s]]
-            chk(f"{lang}_{s}_artal_tryckt", all(y and y in ptext for y in yrs if y), f"indexets år {yrs} i affischtexten")
+            if ruta != s:  # närbilden visar bara de blad som syns i den
+                yrs = [idx_all[s][b]["ar"].replace("-", "–") for b, a_ in (pan.get("andel_per_blad") or {}).items() if a_ > 0 and b in idx_all[s]]
+            chk(f"{lang}_{ruta}_artal_tryckt", all(y and y in ptext for y in yrs if y), f"indexets år {yrs} i affischtexten")
             # 4. georeferering: slumpade pixlar
             n = arr.shape[0]
             m_out = (e1 - e0) / n
@@ -627,11 +767,11 @@ def run(meta_path):
             for b in claimed:
                 ring = idx_all[s][b["blad"]]["ring"]
                 if s == "gsk":
-                    im0 = Image.open(b["lokal"])
-                    fr = frame_lines_dark(im0, [tuple(c) for c in b["ram_horn_px"]])
+                    fr = frame_lines_dark(b["lokal"], [tuple(c) for c in b["ram_horn_px"]])
                     chk(f"{lang}_gsk_kartram_{b['blad']}", fr >= 0.85, f"{fr * 100:.0f} % av punkterna längs kartytans kantlinjer (innerlinjen) är mörka (gräns 85 %)")
                 f, im, spx = source_mapper(s, b, ring)
                 src_m.append(spx)
+                lut = np.asarray(b["lut"], np.uint8) if b.get("lut") is not None else None
                 C, R = f(Eo + b["dE"], No + b["dN"])
                 Wi, Hi = im.size
                 if s == "gsk":
@@ -643,30 +783,35 @@ def run(meta_path):
                 # samma regel som produkten ska följa: djupast inne i ett blad vinner; 8 m marginal mot kanten
                 ok = (depth > bestd) & (C >= 0) & (C < Wi - 1) & (R >= 0) & (R < Hi - 1)
                 bestd = np.where(ok, depth, bestd)
-                rgb = im.convert("RGB")
+                im.close()
+                A = src_pixels(b["lokal"])
                 half = max(0, int(m_out / spx / 2))
                 for k in np.where(ok)[0]:
                     c_, r_ = int(C[k]), int(R[k])
-                    box = rgb.crop((c_ - half, r_ - half, c_ + half + 1, r_ + half + 1))
-                    exp[k] = np.asarray(box).reshape(-1, 3).mean(0)
+                    box = np.asarray(A[max(0, r_ - half):r_ + half + 1, max(0, c_ - half):c_ + half + 1])
+                    v_ = box.reshape(-1, 3).mean(0)
+                    exp[k] = [lut[ch][int(round(v_[ch]))] for ch in range(3)] if lut is not None else v_
             exp[bestd < 3 * m_out] = -1  # nära en bladkant: för känsligt för avrundning, hoppa över
             val = exp[:, 0] >= 0
             if val.sum() < 100:
-                chk(f"{lang}_{s}_georeferering", False, f"bara {val.sum()} provpunkter i källbladen"); continue
+                chk(f"{lang}_{ruta}_georeferering", False, f"bara {val.sum()} provpunkter i källbladen"); continue
             dev = np.abs(got[val] - exp[val]).mean(1)
             med, p90 = float(np.median(dev)), float(np.percentile(dev, 90))
-            chk(f"{lang}_{s}_georeferering", med <= 22 and p90 <= 60,
+            chk(f"{lang}_{ruta}_georeferering", med <= 22 and p90 <= 60,
                 f"{val.sum()} provpunkter: färgavvikelse median {med:.1f}, 90:e percentil {p90:.1f} (gränser 22 / 60)")
             # 6. upplösning ur originalet
             pin = (pan["bbox_pt"][2] - pan["bbox_pt"][0]) / 72
             sdpi = (e1 - e0) / max(src_m) / pin
-            chk(f"{lang}_{s}_kall_upplosning", sdpi >= MIN_SRC_DPI, f"{sdpi:.0f} dpi ur originalskanningen (gräns {MIN_SRC_DPI})")
+            chk(f"{lang}_{ruta}_kall_upplosning", sdpi >= MIN_SRC_DPI, f"{sdpi:.0f} dpi ur originalskanningen (gräns {MIN_SRC_DPI})")
             # tom ruta?
-            papf = (np.abs(arr.astype(int) - PAPER).sum(-1) < 10).mean()
-            chk(f"{lang}_{s}_ej_tom", arr.std() > 12 and papf <= 1 - pan.get("tackning", 1) + 0.03,
+            from scipy.ndimage import uniform_filter
+            g_ = arr.astype(float).mean(-1)
+            flat = np.sqrt(np.maximum(uniform_filter(g_ * g_, 5) - uniform_filter(g_, 5) ** 2, 0)) < 1.0
+            papf = ((np.abs(arr.astype(int) - PAPER).sum(-1) < 10) & flat).mean()  # utfyllnad = jämn pappersfärg
+            chk(f"{lang}_{ruta}_ej_tom", arr.std() > 12 and papf <= 1 - pan.get("tackning", 1) + 0.03,
                 f"std {arr.std():.1f}, papper {papf * 100:.1f} %, täckning enligt generatorn {pan.get('tackning', 0) * 100:.1f} %")
             # 5. passning (bara första språket – samma bild)
-            if lang == list(meta["files"])[0]:
+            if lang == list(meta["files"])[0] and ruta == s:
                 P5 = meta["passning"].get(s, {})
                 gen_ok = bool(P5.get("efter", {}).get("matbar"))
                 adj = P5.get("justering", {"ost_m": 0.0, "nord_m": 0.0})
@@ -693,13 +838,30 @@ def run(meta_path):
         miss_m = []
         for p in meta["geometry"][lang]["panels"]:
             bx0, by0, bx1, by1 = p["bbox_pt"]
-            ex = bx0 + (E - e0) / (e1 - e0) * (bx1 - bx0); ey = by0 + (N - n0) / (n1 - n0) * (by1 - by0)
+            q0, r0_, q1, r1_ = p.get("square", ut["square"])
+            ex = bx0 + (E - q0) / (q1 - q0) * (bx1 - bx0); ey = by0 + (N - r0_) / (r1_ - r0_) * (by1 - by0)
             if not any(abs((d["rect"].x0 + d["rect"].x1) / 2 - ex) < 1.5 and abs(H - (d["rect"].y0 + d["rect"].y1) / 2 - ey) < 1.5 for d in red):
                 miss_m.append(p["serie"])
         chk(f"{lang}_adressmarkor", not miss_m, f"{len(red)} röda markörer; saknas på adressens plats i: {miss_m}")
+        # guidens närbilder: samma bildkontroller (tomma ytor, skarvar)
+        for gp_i, gp in enumerate(meta["geometry"][lang].get("guide", {}).get("pages", [])):
+            if gp.get("vektor") or not gp.get("tackning"):
+                continue
+            pg = doc[2 + gp_i]
+            garr, _ = panel_array(pg, gp["bbox_pt"], pg.rect.height)
+            if garr is None:
+                chk(f"{lang}_guide_{gp['serie']}_bild", False, "ingen bild i närbilden"); continue
+            gim = Image.fromarray(garr)
+            okr, detr, _ = BQ.tomma_rektanglar(gim, karta=True)
+            chk(f"{lang}_guide_{gp['serie']}_inga_tomma_ytor", okr, detr)
+            gcl = [b for b in meta["blad"].get(gp["serie"], []) if b["blad"] in (gp.get("blad") or [b_["blad"] for b_ in meta["blad"].get(gp["serie"], [])])]
+            if len(gcl) > 1 and gp.get("square"):
+                who_, mc_ = owner_map(gcl, gp["serie"], gp["square"], garr.shape[0], idx_all[gp["serie"]])
+                mxs, det_s = seam_check(garr, who_, mc_)
+                chk(f"{lang}_guide_{gp['serie']}_inga_synliga_skarvar", mxs <= SEAM_MAX, f"största färgskarv {mxs:.1f} (gräns {SEAM_MAX:.0f})")
     passed = all(c["ok"] for c in checks)
     res = {"order": o["id"], "product": "historisk", "godkand": passed, "antal_grindar": len(checks),
-           "underkanda": [c for c in checks if not c["ok"]], "alla": checks}
+           "underkanda": [c for c in checks if not c["ok"]], "alla": checks, "info": info}
     json.dump(res, open(Path(meta_path).with_name(f"{o['id']}_qc.json"), "w", encoding="utf-8"), ensure_ascii=False, indent=1)
     return res
 
