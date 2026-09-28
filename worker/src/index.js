@@ -94,6 +94,7 @@ const REASONS = {
   hole_not_found: "The course does not have a hole with that number. Please check the hole number (or leave it empty) and submit again.",
   platser_for_langt_isar: "Two of your places are more than 15 km apart, which is too far for a printable find-your-way map. Please check the towns (or split them into two separate maps) and submit again.",
   ingen_vag_hittad: "We could not find a road route between two of your places in OpenStreetMap. Please check the towns and addresses, or contact us via Etsy messages and we will refund you.",
+  flights_count: "Please enter between 1 and 10 flights, each with where you flew from and to.",
 };
 
 // --- Fler produkter: samma kö, fältet "product" väljer generator + grind i fulfil/fulfil.py (PRODUCTS).
@@ -381,6 +382,54 @@ ${cityField(v)}
     },
   },
 });
+// --- Flygresekartan (fulfil/flygresekarta.py + grind_flygresekarta.py). Länk: /?p=flygresekarta
+const FLIGHT_STYLES = { klassisk: "Classic (white)", natt: "Midnight gold", sepia: "Vintage sepia", blueprint: "Blueprint" };
+const FLIGHT_FORMATS = { A4: "A4 (21×30 cm) - digital", A3: "A3 (30×42 cm) - digital", "50x70": "50×70 cm - digital" };
+Object.assign(PRODUCTS, {
+  flygresekarta: {
+    h1: "Create your flight map",
+    intro: "Enter 1 to 10 flights - an airport code (e.g. ARN) or a city for where you flew from and to, with the date if you like. We draw the real great-circle route for every flight (the actual curved path a plane flies, not a straight line on a flat map) on a world map, with the distance and your total distance flown. Usually ready within an hour. Prefer a printed poster on your wall? See the framed poster listing in our shop - this digital version is the download-it-yourself option.",
+    textLabel: "Title on the map", textPh: "Our Adventures",
+    button: "Create my flight map", ready: "Your flight map is ready",
+    readyNote: "Vector PDF - prints sharp at any size, including A4, A3 and 50×70 cm. The link works for 90 days.",
+    creating: "Your flight map is being created", creatingText: (c) => `We are plotting the great-circle route from ${c}.`,
+    file: "flight-map.pdf", langs: LANGS5,
+    fields: (v) => {
+      const fl = v.flights || [];
+      let h = `<div class="row"><div><label for="style">Style</label>${sel("style", FLIGHT_STYLES, v.style || "klassisk")}</div>
+<div><label for="format">Format</label>${sel("format", FLIGHT_FORMATS, v.format || "A3")}</div></div>`;
+      for (let i = 0; i < 10; i++) {
+        const l = fl[i] || {};
+        h += `<p style="margin:18px 0 0"><small>Flight ${i + 1}${i < 1 ? "" : " (optional)"}</small></p>
+<div class="row"><div><label for="a${i}">From (airport code or city)</label><input id="a${i}" name="a${i}" maxlength="60" value="${esc(l.from)}" placeholder="ARN"${i < 1 ? " required" : ""}></div>
+<div><label for="ac${i}">Country (only needed if the city name is ambiguous)</label><input id="ac${i}" name="ac${i}" maxlength="60" value="${esc(l.from_country)}"></div></div>
+<div class="row"><div><label for="b${i}">To (airport code or city)</label><input id="b${i}" name="b${i}" maxlength="60" value="${esc(l.to)}" placeholder="JFK"${i < 1 ? " required" : ""}></div>
+<div><label for="bc${i}">Country (only needed if the city name is ambiguous)</label><input id="bc${i}" name="bc${i}" maxlength="60" value="${esc(l.to_country)}"></div></div>
+<div class="row"><div><label for="fd${i}">Date (optional)</label><input id="fd${i}" name="fd${i}" type="date" min="1900-01-01" max="2100-12-31" value="${esc(l.date)}"></div>
+<div><label for="fn${i}">Flight number (optional)</label><input id="fn${i}" name="fn${i}" maxlength="12" value="${esc(l.flight_no)}" placeholder="SK933"></div></div>`;
+      }
+      return h;
+    },
+    parse: (f) => {
+      const flights = [];
+      for (let i = 0; i < 10; i++) {
+        const from = String(f[`a${i}`] || "").trim().slice(0, 60), to = String(f[`b${i}`] || "").trim().slice(0, 60);
+        const from_country = String(f[`ac${i}`] || "").trim().slice(0, 60), to_country = String(f[`bc${i}`] || "").trim().slice(0, 60);
+        const date = String(f[`fd${i}`] || ""), flight_no = String(f[`fn${i}`] || "").trim().slice(0, 12);
+        if (from || to) flights.push({ from, from_country, to, to_country, date, flight_no });
+      }
+      return { flights, style: FLIGHT_STYLES[f.style] ? f.style : "klassisk", format: FLIGHT_FORMATS[f.format] ? f.format : "A3" };
+    },
+    validate: (v) => {
+      if (v.flights.length < 1 || v.flights.length > 10) return REASONS.flights_count || "Please enter at least one flight.";
+      if (!v.flights.every((l) => l.from && l.to)) return "Please fill in where you flew from and to for every flight you add.";
+      if (!v.flights.every((l) => !l.date || /^\d{4}-\d{2}-\d{2}$/.test(l.date))) return REASONS.date_out_of_range;
+      if (!v.flights.every((l) => TEXT_OK.test(l.from) && TEXT_OK.test(l.to) && TEXT_OK.test(l.from_country) && TEXT_OK.test(l.to_country) && TEXT_OK.test(l.flight_no)))
+        return TEXT_MSG;
+      return "";
+    },
+  },
+});
 function normProduct(s) {
   const k = String(s || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
   if (["historisk", "history", "address-through-time", "genom-tiden"].includes(k)) return "historisk";
@@ -392,6 +441,7 @@ function normProduct(s) {
   if (["golfbana", "golf", "golf-course", "golf-course-map", "golfplatz", "campo-de-golf"].includes(k)) return "golfbana";
   if (["manfas", "moon", "moon-phase", "moonphase", "birth-moon", "mondphase", "fase-lunar", "phase-lune"].includes(k)) return "manfas";
   if (["brollopskarta", "wedding-map", "weddingmap", "find-your-way-map", "findyourwaymap", "hochzeitskarte"].includes(k)) return "brollopskarta";
+  if (["flygresekarta", "flight-map", "flightmap", "flight-path-map", "flugkarte"].includes(k)) return "flygresekarta";
   return "";
 }
 function productForm(prod, v = {}, error = "") {
@@ -529,7 +579,7 @@ const LISTING_IDS = {
   stjarnkarta: "LISTING_ID_STJARNKARTA", stjarnkarta_manfas: "LISTING_ID_STJARNKARTA_MANFAS",
   formorkelse: "LISTING_ID_FORMORKELSE", himmelskalender: "LISTING_ID_HIMMELSKALENDER",
   historisk: "LISTING_ID_HISTORISK", stadskarta: "LISTING_ID_STADSKARTA", karlekskarta: "LISTING_ID_KARLEKSKARTA",
-  golfbana: "LISTING_ID_GOLFBANA", brollopskarta: "LISTING_ID_BROLLOPSKARTA",
+  golfbana: "LISTING_ID_GOLFBANA", brollopskarta: "LISTING_ID_BROLLOPSKARTA", flygresekarta: "LISTING_ID_FLYGRESEKARTA",
 };
 const ECLIPSE_BEFORE = "2027-08-02"; // förmörkelseguiden erbjuds bara före händelsen
 function crossSell(job, today = new Date().toISOString().slice(0, 10)) {

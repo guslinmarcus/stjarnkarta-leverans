@@ -25,6 +25,13 @@ Jobbets fält "product" väljer generator + grind (saknas fältet = stjärnkarta
                                                                      valfri text; för svenska orter valfritt SMHI-dygnsväder;
                                                                      variant=husdjur ("gotcha day"); 4 stilar; enheter
                                                                      metriskt/imperialt efter språk+land; språk sv/en/de)
+    flygresekarta     flygresekarta.py    + grind_flygresekarta.py   (1-10 flygningar, varje flygning
+                                                                     från/till flygplats (IATA eller stad),
+                                                                     valfritt datum+flygnummer, riktiga
+                                                                     storcirkelbågar (flygdata.py, OpenFlights
+                                                                     ODbL); 4 stilar (klassisk/natt/sepia/
+                                                                     blueprint), format A4/A3/50x70,
+                                                                     språk en/sv/de/fr/es)
     foreningskalender foreningskalender.py + grind_foreningskalender.py (klubbkalender 2027: svenska helgdagar
                                                                      (Lag 1989:253) och namnsdagar (dagar_sverige.py),
                                                                      månfaser, klubbens egna matcher/datum, färger,
@@ -59,7 +66,10 @@ PRODUCTS = {  # produkt: (generator, grind, tillåtna språk)
     "brollopskarta": ("brollopskarta", "grind_brollopskarta", ("en", "sv", "de")),
     "fodelsetavla": ("fodelsetavla", "grind_fodelsetavla", ("sv", "en", "de")),
     "foreningskalender": ("foreningskalender", "grind_foreningskalender", ("sv",)),
+    "flygresekarta": ("flygresekarta", "grind_flygresekarta", ("en", "sv", "de", "fr", "es")),
 }
+FLYG_STYLES = ("klassisk", "natt", "sepia", "blueprint")
+FLYG_FORMAT = ("A4", "A3", "50x70")
 GOLF_STYLES = ("klassisk", "vintage", "minimal", "mork")
 MANFAS_STYLES = ("mork", "ljus", "akvarell", "barnrum")
 FORENINGSKALENDER_STYLES = ("klassisk", "mork", "lekfull", "minimal")
@@ -165,6 +175,8 @@ def make_order(job):
         return make_fodelsetavla(job, lang)
     if product == "foreningskalender":
         return make_foreningskalender(job)
+    if product == "flygresekarta":
+        return make_flygresekarta(job, lang)
     g = geocode(job["city"], "SE" if product == "historisk" else job.get("country", ""))
     if not g:
         return None, "city_not_found"
@@ -347,6 +359,38 @@ def make_fodelsetavla(job, lang):
     order.update(weight_g=weight_g, height_cm=height_cm, text=(job.get("note") or "").strip()[:60], family=family,
                  weather_requested=bool(job.get("weather")) and cc == "SE", units=fodelse_units(lang, cc))
     return order, None
+
+
+def make_flygresekarta(job, lang):
+    """Flygresekartan: 1-10 flygningar, varje flygning en 'from'/'to' (IATA-kod, ICAO-kod eller stadsnamn,
+    valfritt 'from_country'/'to_country' för att skilja likanamnade städer åt), valfritt 'date' (ÅÅÅÅ-MM-DD)
+    och 'flight_no'. Flygplatsuppslagningen görs av flygdata.hitta (egen datakopia, se den filens dokstycke)."""
+    import re
+    import flygdata as FD
+    flights_in = (job.get("flights") or [])[:10]
+    if not 1 <= len(flights_in) <= 10:
+        return None, "flights_count"
+    flights = []
+    for leg in flights_in:
+        d = str(leg.get("date") or "")
+        if d and not (re.fullmatch(r"\d{4}-\d{2}-\d{2}", d) and "1900-01-01" <= d <= "2100-12-31"):
+            return None, "date_out_of_range"
+        parts = {}
+        for sida in ("from", "to"):
+            kod = (leg.get(sida) or "").strip()
+            if not kod:
+                return None, "city_not_found"
+            ap = FD.hitta(kod, (leg.get(f"{sida}_country") or "").strip())
+            if not ap:
+                return None, "city_not_found"
+            parts[sida] = {"iata": ap.iata, "icao": ap.icao, "namn": ap.namn, "stad": ap.stad, "land": ap.land,
+                            "lat": round(ap.lat, 4), "lon": round(ap.lon, 4)}
+        flights.append({"from": parts["from"], "to": parts["to"], "date": d or None,
+                        "flight_no": (leg.get("flight_no") or "").strip()[:12]})
+    return {"id": job["id"], "product": "flygresekarta", "text": (job.get("text") or "").strip()[:50],
+            "style": job.get("style") if job.get("style") in FLYG_STYLES else "klassisk",
+            "format": job.get("format") if job.get("format") in FLYG_FORMAT else "A3",
+            "place": flights[0]["from"]["stad"], "flights": flights, "languages": [lang]}, None
 
 
 FORENING_EVENT_TYP = ("match", "cup", "training", "event")
