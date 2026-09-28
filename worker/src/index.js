@@ -668,9 +668,17 @@ async function dispatchLeverans(env, product) {
 // ADDITIVT: egna nycklar (julkulafoto:<token> för bildbytes, job:julkula-<ordernummer> för jobbet), rör aldrig
 // job:<24-hex-id>-formatet ovan. ÅTERANVÄNDER dock orderjob:<order>:<id>-indexet oförändrat, så den redan
 // driftade GET /api/order/<ordernummer> (nedan) hittar julkula-jobbet utan att den koden ändras.
+// UPPDATERAT 2026-09-28 (produktbyte Printify->Prodigi + Marcus flerkule-tillägg mitt i uppdraget): Prodigis
+// XMAS-PLAS-BAUB har bara EN tryckyta (porträtt+namn/år i EN bild, syns genom kulans båda sidor) - INTE
+// framsida/baksida som den gamla, underkända Printify-skivan hade. "Antal kulor"-variationen (1-4, ett SET-pris,
+// se tryck/prodigi_client.py:KOD_KVANTITET och tryck/annonser/julkula_*.json) gör att EN order kan omfatta FLERA
+// kulor, var och en med EGET foto + EGEN namnrad - modellen nedan är därför en `kulor`-array (index 1..4, en bild
+// var) i stället för det gamla fasta framsida/baksida-paret. Godkännande sker för HELA setet i en omgång (inte
+// per kula) - enklare för köparen och matchar "upp till 3 omgångar"-texten som redan fanns.
 const JULKULA_TTL = 60 * 60 * 24 * 60; // 60 dagar - GDPR (Marcus-uppdrag 2026-09-28): kundfoton raderas automatiskt
 const JULKULA_BILDTYPER = { "image/jpeg": 1, "image/png": 1, "image/webp": 1 };
 const JULKULA_MAX_BYTES = 10 * 1024 * 1024;
+const JULKULA_MAX_KULOR = 4;
 
 const julkulaJobId = (ordernummer) => `julkula-${ordernummer}`;
 
@@ -706,19 +714,21 @@ function julkulaB64ToBytes(b64) {
 
 function julkulaProofPage(ref, jobb, error) {
   const proof = jobb && jobb.proof;
-  if (!proof) return page("Not ready yet", `<h1>Not ready yet</h1><p>Your ornament preview is not ready yet - we will email you a link as soon as it is (usually within a day or two).</p>`);
+  if (!proof || !Array.isArray(proof.kulor) || !proof.kulor.length)
+    return page("Not ready yet", `<h1>Not ready yet</h1><p>Your ornament preview is not ready yet - we will email you a link as soon as it is (usually within a day or two).</p>`);
   const svarad = jobb.proof_svar && jobb.proof_svar.omgang === proof.omgang;
+  const flera = proof.kulor.length > 1;
+  const bilder = proof.kulor.map((url, i) => `<div${flera ? ` style="margin-bottom:14px"` : ""}>${flera ? `<p><small>Bauble ${i + 1} of ${proof.kulor.length}</small></p>` : ""}<img src="${esc(url)}" alt="Bauble ${i + 1} design" style="width:100%;border-radius:10px"></div>`).join("");
   return page("Your ornament preview", `
 <h1>Your ornament preview</h1>
-<p>Round ${proof.omgang} of 3. Please look closely at both sides before approving - once you approve, we send it to production.</p>
-<div class="row"><div><img src="${esc(proof.framsida_url)}" alt="Front" style="width:100%;border-radius:10px"></div>
-<div><img src="${esc(proof.baksida_url)}" alt="Back" style="width:100%;border-radius:10px"></div></div>
+<p>Round ${proof.omgang} of 3. Please look closely at ${flera ? "every bauble" : "the design"} before approving - once you approve, we send ${flera ? "them" : "it"} to production.</p>
+${bilder}
 ${error ? `<p class="err">${esc(error)}</p>` : ""}
 ${svarad ? `<div class="card"><p>Thank you - we have received your answer for round ${proof.omgang}. We will be in touch by email.</p></div>` : `
 <form method="post" action="/proof/${esc(ref)}">
 <input type="hidden" name="omgang" value="${proof.omgang}">
-<button type="submit" name="val" value="godkann">Approve</button>
-<p style="margin:18px 0 0"><small>Not quite right? Describe what to change, then request a change instead:</small></p>
+<button type="submit" name="val" value="godkann">Approve ${flera ? "all" : ""}</button>
+<p style="margin:18px 0 0"><small>Not quite right? Describe what to change (mention which bauble if only one is wrong), then request a change instead:</small></p>
 <label for="feedback">What should we change (optional)</label><input id="feedback" name="feedback" maxlength="500">
 <button type="submit" name="val" value="andra" class="btn2">Request a change</button>
 </form>`}
@@ -764,38 +774,43 @@ export default {
 <p><b>What we collect.</b> Only what you enter: Etsy order number, the text for your poster, place(s), date, time, language and – for golf course maps – the course, hole and player name. We use it only to create and deliver your file (star map, eclipse guide, sky calendar, map, find-your-way map, golf course map or Moon phase poster). The club calendar (<a style="color:#d9c9a0" href="/kalender">/kalender</a>) is sold directly to sports clubs, not through Etsy – see its own <a style="color:#d9c9a0" href="/kalender-villkor">terms</a> for what is collected and deleted.</p>
 <p><b>How long.</b> Everything, including your file, is deleted automatically after 90 days.</p>
 <p><b>Sharing.</b> We never sell or share your details. They are processed by our hosting providers (Cloudflare, GitHub) only to run the service. For a physical print (poster, framed print or canvas), your print file and delivery address are also shared with our print partner Gelato, who prints and ships the item directly to you.</p>
-<p><b>Custom ornament photos.</b> If you order a custom cartoon ornament, the photo(s) you upload are used only to make your ornament and its preview, and shared with our print partner Printify for manufacturing. They are deleted automatically 60 days after upload - sooner than our other files.</p>
+<p><b>Custom ornament photos.</b> If you order a custom cartoon ornament (1-4 baubles per order), the photo(s) you upload are used only to make your ornament(s) and their preview, and shared with our print partner Prodigi for manufacturing. They are deleted automatically 60 days after upload - sooner than our other files.</p>
 <p><b>Your rights.</b> You can ask us to delete your data earlier or ask what we store, via the contact address below or Etsy messages.</p>
 <p><b>Terms.</b> The star map is calculated from astronomical data for the place and time you enter. Please check your details before submitting; you can resubmit up to three times per order.</p>`);
 
 
-    // --- Julkulan: kundfoto-uppladdning (publik, kopplad till Etsy-ordernumret - tryck/julkula_kedja.py:s_vantar_foto)
+    // --- Julkulan: kundfoto-uppladdning (publik, kopplad till Etsy-ordernumret - tryck/julkula_kedja.py:s_vantar_foto).
+    // Body: {ordernummer, antal (1-4, valfritt - antalet kulor i ordern, från Antal kulor-variationen), bilder:
+    // [{kula: 1-4, content_type, data_base64}, ...]} - EN bild per kula (Prodigis XMAS-PLAS-BAUB har bara en
+    // tryckyta, se prodigi_client.py:s docstring), inte längre framsida/baksida.
     if (req.method === "POST" && p === "/julkula/foto") {
       let body;
       try { body = await req.json(); } catch (e) { return new Response("bad json", { status: 400 }); }
       const ordernummer = String(body.ordernummer || "").replace(/\D/g, "");
       if (!/^\d{6,14}$/.test(ordernummer)) return new Response("ogiltigt ordernummer", { status: 400 });
+      const antal = Math.min(JULKULA_MAX_KULOR, Math.max(1, parseInt(body.antal, 10) || 1));
       const bilder = Array.isArray(body.bilder) ? body.bilder : [];
-      if (!bilder.length || bilder.length > 2) return new Response("1-2 bilder krävs", { status: 400 });
+      if (!bilder.length || bilder.length > JULKULA_MAX_KULOR) return new Response(`1-${JULKULA_MAX_KULOR} bilder krävs`, { status: 400 });
       const sparade = [];
       for (const b of bilder) {
+        const kula = Math.min(JULKULA_MAX_KULOR, Math.max(1, parseInt(b && b.kula, 10) || 1));
         const ct = String((b && b.content_type) || "");
         if (!JULKULA_BILDTYPER[ct]) return new Response("filtyp (endast jpeg/png/webp)", { status: 400 });
         let bytes;
         try { bytes = julkulaB64ToBytes(b && b.data_base64); } catch (e) { return new Response("ogiltig bilddata", { status: 400 }); }
         if (!bytes.byteLength) return new Response("tom bild", { status: 400 });
         if (bytes.byteLength > JULKULA_MAX_BYTES) return new Response("för stor fil (max 10 MB)", { status: 413 });
-        const typ = ["framsida", "baksida"].includes(b.typ) ? b.typ : "framsida";
-        const token = await julkulaSparaBild(env, bytes, ct, { ordernummer, typ });
-        sparade.push({ typ, url: `${url.origin}/julkula/f/${token}` });
+        const token = await julkulaSparaBild(env, bytes, ct, { ordernummer, kula });
+        sparade.push({ kula, url: `${url.origin}/julkula/f/${token}` });
       }
       const jobb = await julkulaJobb(env, ordernummer);
       const foton = (jobb && jobb.foton) || [];
       for (const s of sparade) {
-        const i = foton.findIndex((f) => f.typ === s.typ);
+        const i = foton.findIndex((f) => f.kula === s.kula);
         if (i >= 0) foton[i] = s; else foton.push(s);
       }
-      await julkulaSpara(env, ordernummer, { foton: foton.slice(-2) });
+      foton.sort((a, b) => a.kula - b.kula);
+      await julkulaSpara(env, ordernummer, { antal, foton: foton.slice(0, JULKULA_MAX_KULOR) });
       return Response.json({ ok: true, foton: sparade });
     }
     if (req.method === "GET" && (m = p.match(/^\/julkula\/f\/([0-9a-f]{32})$/))) {
@@ -934,29 +949,33 @@ export default {
         await env.JOBS.put(`tryck:${token}`, body, { expirationTtl: 60 * 60 * 24 * 60, metadata: { ref: m[1] } }); // 60 dagar
         return Response.json({ url: `${url.origin}/t/${token}.pdf` });
       }
-      // Julkulan: agent-sessionen laddar upp de två genererade proof-bilderna (tryck/kallor.py:Portal.ladda_upp_proof,
+      // Julkulan: agent-sessionen laddar upp EN genererad proof-bild PER KULA (tryck/kallor.py:Portal.ladda_upp_proof,
       // anropad av julkula_kedja.py:generera_och_skicka_proof EFTER tvåstegsmetoden STILTEST.md §14 - se den
-      // filens docstring för varför det steget inte körs obevakat).
+      // filens docstring för varför det steget inte körs obevakat). UPPDATERAT 2026-09-28 (Prodigi-bytet + Marcus
+      // flerkule-tillägg): body = {omgang, kulor: [{content_type, data_base64}, ...]} - en bild per kula (1-4,
+      // ordningen = kulornas ordning i annonsens personalisering), inte längre framsida_base64/baksida_base64.
       if (req.method === "POST" && (m = p.match(/^\/api\/proof\/(\d{6,14})$/))) {
         const ordernummer = m[1];
         let body;
         try { body = await req.json(); } catch (e) { return new Response("bad json", { status: 400 }); }
         const omgang = parseInt(body.omgang, 10);
         if (!(omgang >= 1 && omgang <= 3)) return new Response("bad omgang (1-3)", { status: 400 });
-        const urls = {};
-        for (const typ of ["framsida", "baksida"]) {
-          const b64 = body[`${typ}_base64`];
-          if (!b64) return new Response(`${typ}_base64 saknas`, { status: 400 });
-          const ct = JULKULA_BILDTYPER[body[`${typ}_content_type`]] ? body[`${typ}_content_type`] : "image/png";
+        const kulor = Array.isArray(body.kulor) ? body.kulor : [];
+        if (!kulor.length || kulor.length > JULKULA_MAX_KULOR) return new Response(`1-${JULKULA_MAX_KULOR} kulor krävs`, { status: 400 });
+        const urls = [];
+        for (let i = 0; i < kulor.length; i++) {
+          const b64 = kulor[i] && kulor[i].data_base64;
+          if (!b64) return new Response(`kulor[${i}].data_base64 saknas`, { status: 400 });
+          const ct = JULKULA_BILDTYPER[kulor[i].content_type] ? kulor[i].content_type : "image/png";
           let bytes;
-          try { bytes = julkulaB64ToBytes(b64); } catch (e) { return new Response(`ogiltig ${typ}_base64`, { status: 400 }); }
-          if (!bytes.byteLength) return new Response(`tom ${typ}`, { status: 400 });
+          try { bytes = julkulaB64ToBytes(b64); } catch (e) { return new Response(`ogiltig kulor[${i}].data_base64`, { status: 400 }); }
+          if (!bytes.byteLength) return new Response(`tom bild för kula ${i + 1}`, { status: 400 });
           if (bytes.byteLength > JULKULA_MAX_BYTES) return new Response("för stor fil (max 10 MB)", { status: 413 });
-          const token = await julkulaSparaBild(env, bytes, ct, { ordernummer, typ: `proof_${typ}` });
-          urls[typ] = `${url.origin}/julkula/f/${token}`;
+          const token = await julkulaSparaBild(env, bytes, ct, { ordernummer, typ: `proof_kula${i + 1}`, omgang });
+          urls.push(`${url.origin}/julkula/f/${token}`);
         }
-        await julkulaSpara(env, ordernummer, { proof: { omgang, framsida_url: urls.framsida, baksida_url: urls.baksida } });
-        return Response.json({ ok: true, framsida_url: urls.framsida, baksida_url: urls.baksida });
+        await julkulaSpara(env, ordernummer, { proof: { omgang, kulor: urls } });
+        return Response.json({ ok: true, kulor: urls });
       }
       if (req.method === "GET" && p === "/api/queue") {
         const list = await env.JOBS.list({ prefix: "pending:", limit: 100 });
