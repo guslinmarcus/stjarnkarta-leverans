@@ -939,6 +939,20 @@ export default {
         jobs.sort((a, b) => (a.created < b.created ? -1 : 1));
         return Response.json({ jobs });
       }
+      // Julkulan: lagrar EN godkänd Prodigi-konstfil (raster, en per kula) och ger tillbaka en osynlig länk
+      // (samma /julkula/f/<token>-rutt kundfotona redan serveras från, publik utan auth - Prodigi hämtar
+      // filen härifrån). tryck/julkula_kedja.py:s_uppladdad -> tryck/kallor.py:Portal.lagra_julkula_konstfil.
+      if (req.method === "PUT" && (m = p.match(/^\/api\/julkula\/konstfil\/(etsy-\d+-\d+)\/([1-4])$/))) {
+        const [, ref, kula] = m;
+        const body = await req.arrayBuffer();
+        if (body.byteLength > 10 * 1024 * 1024) return new Response("too large", { status: 413 });
+        const head = new Uint8Array(body.slice(0, 4));
+        const isJpeg = head[0] === 0xff && head[1] === 0xd8;
+        const isPng = head[0] === 0x89 && head[1] === 0x50 && head[2] === 0x4e && head[3] === 0x47;
+        if (!isJpeg && !isPng) return new Response("not a jpeg/png", { status: 400 });
+        const token = await julkulaSparaBild(env, new Uint8Array(body), isPng ? "image/png" : "image/jpeg", { ref, kula: parseInt(kula, 10), konstfil: true });
+        return Response.json({ url: `${url.origin}/julkula/f/${token}` });
+      }
       // Tryckkedjan: lagrar den godkända tryckfilen och ger tillbaka en osynlig länk (/t/<token>.pdf) som Gelato hämtar.
       if (req.method === "PUT" && (m = p.match(/^\/api\/tryckfil\/(etsy-\d+-\d+)$/))) {
         const body = await req.arrayBuffer();
