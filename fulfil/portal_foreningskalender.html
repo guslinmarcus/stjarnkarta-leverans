@@ -1,0 +1,195 @@
+<!doctype html>
+<html lang="sv">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Klubbkalender 2027 – testformulär (lokalt)</title>
+<style>
+  :root { --ink:#161616; --mute:#666; --line:#ddd; --bg:#fafafa; --accent:#1a6b3a; }
+  * { box-sizing: border-box; }
+  body { font-family: -apple-system, Segoe UI, Arial, sans-serif; background: var(--bg); color: var(--ink);
+         max-width: 780px; margin: 0 auto; padding: 24px 16px 80px; }
+  h1 { font-size: 22px; margin-bottom: 4px; }
+  p.lead { color: var(--mute); margin-top: 0; }
+  .varning { background: #fff4d6; border: 1px solid #e8c468; padding: 10px 14px; border-radius: 6px; font-size: 14px; margin-bottom: 20px; }
+  fieldset { border: 1px solid var(--line); border-radius: 8px; padding: 16px; margin-bottom: 16px; }
+  legend { font-weight: 600; padding: 0 6px; }
+  label { display: block; font-size: 13px; color: var(--mute); margin-top: 10px; margin-bottom: 3px; }
+  input[type=text], input[type=date], select { width: 100%; padding: 8px 10px; border: 1px solid var(--line); border-radius: 6px; font-size: 14px; }
+  input[type=color] { width: 44px; height: 34px; padding: 2px; border: 1px solid var(--line); border-radius: 6px; vertical-align: middle; }
+  .row { display: flex; gap: 12px; }
+  .row > div { flex: 1; }
+  .handelse-rad { display: grid; grid-template-columns: 130px 1fr 110px 70px 28px; gap: 8px; align-items: center; margin-top: 8px; }
+  .handelse-rad select, .handelse-rad input { padding: 6px 8px; font-size: 13px; }
+  button.liten { background: none; border: 1px solid var(--line); border-radius: 6px; cursor: pointer; padding: 4px 8px; }
+  button.ta-bort { color: #b0231c; }
+  button.lagg-till { margin-top: 10px; }
+  .sponsor-rad { display: flex; gap: 8px; margin-top: 8px; }
+  .sponsor-rad input { flex: 1; }
+  .stilar { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-top: 8px; }
+  .stilar label { display: flex; align-items: center; gap: 6px; border: 1px solid var(--line); border-radius: 6px; padding: 8px; cursor: pointer; font-size: 13px; color: var(--ink); margin: 0; }
+  .stilar input { width: auto; margin: 0; }
+  .skicka { background: var(--accent); color: #fff; border: none; border-radius: 8px; padding: 12px 22px; font-size: 15px; cursor: pointer; }
+  .skicka:disabled { opacity: .5; cursor: default; }
+  #resultat { margin-top: 20px; padding: 14px; border-radius: 8px; display: none; font-size: 14px; }
+  #resultat.ok { background: #e5f5ea; border: 1px solid #8fd1a6; display: block; }
+  #resultat.fel { background: #fbe6e4; border: 1px solid #e69a92; display: block; }
+  #resultat a { color: var(--accent); font-weight: 600; }
+  small.hjalp { display: block; color: var(--mute); font-size: 12px; margin-top: 2px; }
+</style>
+</head>
+<body>
+<h1>Klubbkalender 2027</h1>
+<p class="lead">Fyll i formuläret nedan. En tryckfärdig väggkalender (13 sidor: omslag + jan–dec) skapas automatiskt
+med svenska helgdagar, namnsdagar, månfaser och era egna datum.</p>
+<div class="varning">
+  Det här är en <strong>testsida på egen dator</strong> (inte den skarpa beställningssidan). Den pratar bara med
+  en lokal testserver på <code>http://localhost:8765</code> – starta den först med
+  <code>python portal_lokal_server.py</code>. Inget skickas till internet, inget köps, inget mejlas.
+</div>
+
+<form id="formular">
+  <fieldset>
+    <legend>Klubben</legend>
+    <div class="row">
+      <div><label for="namn">Klubbens namn *</label><input type="text" id="namn" required maxlength="60" placeholder="IFK Exempel"></div>
+      <div><label for="lag">Lag/grupp</label><input type="text" id="lag" maxlength="20" placeholder="P14"></div>
+    </div>
+    <div class="row">
+      <div><label for="sport">Idrott</label><input type="text" id="sport" maxlength="30" placeholder="Fotboll"></div>
+      <div><label for="venue">Hemmaplan</label><input type="text" id="venue" maxlength="60" placeholder="Exempelvallen"></div>
+    </div>
+    <div class="row">
+      <div><label for="farg1">Klubbfärg 1 *</label><input type="color" id="farg1" value="#1a6b3a"></div>
+      <div><label for="farg2">Klubbfärg 2 (valfri)</label><input type="color" id="farg2" value="#ffffff"></div>
+    </div>
+    <small class="hjalp">Logga laddas upp i ett senare steg (bild-MVP kommer efter textversionen) – klubbens namn används som platshållare på omslaget tills dess.</small>
+  </fieldset>
+
+  <fieldset>
+    <legend>Stil</legend>
+    <div class="stilar">
+      <label><input type="radio" name="stil" value="klassisk" checked> Klassisk</label>
+      <label><input type="radio" name="stil" value="mork"> Midnight</label>
+      <label><input type="radio" name="stil" value="lekfull"> Lekfull</label>
+      <label><input type="radio" name="stil" value="minimal"> Minimal</label>
+    </div>
+    <label for="format" style="margin-top:14px">Tryckformat (liggande, som en vanlig väggkalender)</label>
+    <div style="display:flex;align-items:center;gap:12px">
+      <select id="format" style="flex:1">
+        <option value="A4">A4 liggande – 297×210 mm, går att beställa tryckt (Gelato)</option>
+        <option value="A3">A3 liggande – 420×297 mm, bara digital pdf för eget tryck</option>
+      </select>
+      <div id="format-ikon" aria-hidden="true"
+           style="flex-shrink:0;width:56px;height:40px;border:2px solid var(--ink);border-radius:3px;
+                  display:flex;align-items:center;justify-content:center;font-size:10px;color:var(--mute)">liggande</div>
+    </div>
+  </fieldset>
+
+  <fieldset>
+    <legend>Matcher och viktiga datum</legend>
+    <div id="handelser"></div>
+    <button type="button" class="liten lagg-till" id="lagg-till-handelse">+ Lägg till datum</button>
+  </fieldset>
+
+  <fieldset>
+    <legend>Sponsorer (visas i sidfoten, valfritt)</legend>
+    <div id="sponsorer"></div>
+    <button type="button" class="liten lagg-till" id="lagg-till-sponsor">+ Lägg till sponsor</button>
+  </fieldset>
+
+  <p><label style="display:flex;align-items:flex-start;gap:8px;font-size:13px;color:var(--ink)">
+    <input type="checkbox" id="samtycke" required style="width:auto;margin-top:3px">
+    Jag intygar att klubben har vårdnadshavarnas samtycke för de uppgifter (t.ex. bilder) som eventuellt läggs till
+    senare, och har läst <a href="villkor_foreningskalender.md" target="_blank">villkoren</a> om personuppgifter och radering.
+  </label></p>
+
+  <button type="submit" class="skicka" id="skicka-knapp">Skapa förhandsvisning</button>
+</form>
+
+<div id="resultat"></div>
+
+<script>
+const API = "http://localhost:8765/api/foreningskalender";
+const handelserDiv = document.getElementById("handelser");
+const sponsorerDiv = document.getElementById("sponsorer");
+
+function handelseRad(datum, titel, typ, hemma) {
+  const div = document.createElement("div");
+  div.className = "handelse-rad";
+  div.innerHTML = `
+    <input type="date" class="h-datum" min="2027-01-01" max="2027-12-31" value="${datum||''}">
+    <input type="text" class="h-titel" maxlength="40" placeholder="Hemma vs Any BK" value="${titel||''}">
+    <select class="h-typ">
+      <option value="match" ${typ==='match'?'selected':''}>Match</option>
+      <option value="cup" ${typ==='cup'?'selected':''}>Cup</option>
+      <option value="training" ${typ==='training'?'selected':''}>Träning/läger</option>
+      <option value="event" ${typ==='event'?'selected':''}>Övrigt</option>
+    </select>
+    <label style="display:flex;align-items:center;gap:4px;margin:0"><input type="checkbox" class="h-hemma" ${hemma?'checked':''}> Hemma</label>
+    <button type="button" class="liten ta-bort" title="Ta bort">✕</button>`;
+  div.querySelector(".ta-bort").onclick = () => div.remove();
+  handelserDiv.appendChild(div);
+}
+function sponsorRad(namn) {
+  const div = document.createElement("div");
+  div.className = "sponsor-rad";
+  div.innerHTML = `<input type="text" class="s-namn" maxlength="30" placeholder="Sponsor AB" value="${namn||''}">
+    <button type="button" class="liten ta-bort" title="Ta bort">✕</button>`;
+  div.querySelector(".ta-bort").onclick = () => div.remove();
+  sponsorerDiv.appendChild(div);
+}
+document.getElementById("lagg-till-handelse").onclick = () => handelseRad();
+document.getElementById("lagg-till-sponsor").onclick = () => sponsorRad();
+// Startläge: en exempelrad av vardera, så formuläret inte känns tomt
+handelseRad("2027-04-17", "Hemma vs Any BK", "match", true);
+sponsorRad("");
+
+document.getElementById("formular").addEventListener("submit", async (ev) => {
+  ev.preventDefault();
+  const knapp = document.getElementById("skicka-knapp");
+  const resultat = document.getElementById("resultat");
+  const events = [...handelserDiv.querySelectorAll(".handelse-rad")].map(r => ({
+    date: r.querySelector(".h-datum").value,
+    title: r.querySelector(".h-titel").value.trim(),
+    type: r.querySelector(".h-typ").value,
+    home: r.querySelector(".h-hemma").checked,
+  })).filter(e => e.date && e.title);
+  const sponsors = [...sponsorerDiv.querySelectorAll(".s-namn")].map(i => i.value.trim()).filter(Boolean);
+  const colors = [document.getElementById("farg1").value];
+  if (document.getElementById("farg2").value.toLowerCase() !== "#ffffff") colors.push(document.getElementById("farg2").value);
+  const body = {
+    club: {
+      name: document.getElementById("namn").value.trim(),
+      team: document.getElementById("lag").value.trim(),
+      sport: document.getElementById("sport").value.trim(),
+      venue: document.getElementById("venue").value.trim(),
+      colors,
+    },
+    events, sponsors,
+    style: document.querySelector('input[name=stil]:checked').value,
+    format: document.getElementById("format").value,
+  };
+  knapp.disabled = true; knapp.textContent = "Skapar …";
+  resultat.className = ""; resultat.style.display = "none";
+  try {
+    const r = await fetch(API, { method: "POST", headers: {"Content-Type":"application/json"}, body: JSON.stringify(body) });
+    const j = await r.json();
+    if (j.ok) {
+      resultat.className = "ok";
+      resultat.innerHTML = `Klart! Kalendern (${j.sidor} sidor, stil "${j.stil}", ${j.format} liggande) klarade kvalitetsgrinden.
+        <a href="http://localhost:8765${j.pdf_url}" target="_blank">Öppna förhandsvisningen (pdf)</a>`;
+    } else {
+      resultat.className = "fel";
+      resultat.innerHTML = "Kunde inte skapa kalendern: " + (j.fel || "okänt fel") +
+        (j.detaljer ? "<br><small>" + j.detaljer.slice(0,5).join("<br>") + "</small>" : "");
+    }
+  } catch (e) {
+    resultat.className = "fel";
+    resultat.textContent = "Nådde inte testservern. Kör \"python portal_lokal_server.py\" i en terminal först. (" + e + ")";
+  }
+  knapp.disabled = false; knapp.textContent = "Skapa förhandsvisning";
+});
+</script>
+</body>
+</html>

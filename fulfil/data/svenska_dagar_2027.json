@@ -1,0 +1,3180 @@
+{
+ "meta": {
+  "ar": 2027,
+  "kallor": {
+   "helgdagar": "Lag (1989:253) om allmänna helgdagar 1 § (data.riksdagen.se, verifierad 2026-09-28 mot Meeus/Jones/Butcher-påskformeln – alla 13 lagreglerade helgdagar 2027 matchar exakt, se granskning i BESLUTSLOGG.md). Almanacksmonopolet (Kungl. Vetenskapsakademien) upphörde 1973 (sv.wikipedia.org/wiki/Almanacka) – fritt att publicera.",
+   "namnsdag": "Den svenska namnlängden (fastställd av Namnlängdskommittén/Svenska Akademien, allmänt använd av alla svenska kalenderutgivare sedan almanacksmonopolet upphörde 1973). Datakälla (bekvämlighetsspegling, klass B): api.dryg.net/dagar/v2.1/2027, hämtad 2026-09-28. OSÄKERT: dryg.nets exakta drift-licens är inte dokumenterad – namnlängden i sig är fri (ingen ensamrätt sedan 1973), men källans tillgänglighet bör dubbelkollas mot en andra publik källa (t.ex. Institutet för språk och folkminnen) före skarp drift i stor skala."
+  },
+  "hamtad": "2026-09-28"
+ },
+ "dagar": {
+  "2027-01-01": {
+   "veckodag": "Fredag",
+   "rod_dag": true,
+   "helgdag": "Nyårsdagen",
+   "namnsdag": []
+  },
+  "2027-01-02": {
+   "veckodag": "Lördag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Svea"
+   ]
+  },
+  "2027-01-03": {
+   "veckodag": "Söndag",
+   "rod_dag": true,
+   "helgdag": null,
+   "namnsdag": [
+    "Alfred",
+    "Alfrida"
+   ]
+  },
+  "2027-01-04": {
+   "veckodag": "Måndag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Rut"
+   ]
+  },
+  "2027-01-05": {
+   "veckodag": "Tisdag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Hanna",
+    "Hannele"
+   ]
+  },
+  "2027-01-06": {
+   "veckodag": "Onsdag",
+   "rod_dag": true,
+   "helgdag": "Trettondedag jul",
+   "namnsdag": [
+    "Kasper",
+    "Melker",
+    "Baltsar"
+   ]
+  },
+  "2027-01-07": {
+   "veckodag": "Torsdag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "August",
+    "Augusta"
+   ]
+  },
+  "2027-01-08": {
+   "veckodag": "Fredag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Erland"
+   ]
+  },
+  "2027-01-09": {
+   "veckodag": "Lördag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Gunnar",
+    "Gunder"
+   ]
+  },
+  "2027-01-10": {
+   "veckodag": "Söndag",
+   "rod_dag": true,
+   "helgdag": null,
+   "namnsdag": [
+    "Sigurd",
+    "Sigbritt"
+   ]
+  },
+  "2027-01-11": {
+   "veckodag": "Måndag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Jan",
+    "Jannike"
+   ]
+  },
+  "2027-01-12": {
+   "veckodag": "Tisdag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Frideborg",
+    "Fridolf"
+   ]
+  },
+  "2027-01-13": {
+   "veckodag": "Onsdag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Knut"
+   ]
+  },
+  "2027-01-14": {
+   "veckodag": "Torsdag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Felix",
+    "Felicia"
+   ]
+  },
+  "2027-01-15": {
+   "veckodag": "Fredag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Laura",
+    "Lorentz"
+   ]
+  },
+  "2027-01-16": {
+   "veckodag": "Lördag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Hjalmar",
+    "Helmer"
+   ]
+  },
+  "2027-01-17": {
+   "veckodag": "Söndag",
+   "rod_dag": true,
+   "helgdag": null,
+   "namnsdag": [
+    "Anton",
+    "Tony"
+   ]
+  },
+  "2027-01-18": {
+   "veckodag": "Måndag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Hilda",
+    "Hildur"
+   ]
+  },
+  "2027-01-19": {
+   "veckodag": "Tisdag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Henrik"
+   ]
+  },
+  "2027-01-20": {
+   "veckodag": "Onsdag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Fabian",
+    "Sebastian"
+   ]
+  },
+  "2027-01-21": {
+   "veckodag": "Torsdag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Agnes",
+    "Agneta"
+   ]
+  },
+  "2027-01-22": {
+   "veckodag": "Fredag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Vincent",
+    "Viktor"
+   ]
+  },
+  "2027-01-23": {
+   "veckodag": "Lördag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Frej",
+    "Freja"
+   ]
+  },
+  "2027-01-24": {
+   "veckodag": "Söndag",
+   "rod_dag": true,
+   "helgdag": null,
+   "namnsdag": [
+    "Erika"
+   ]
+  },
+  "2027-01-25": {
+   "veckodag": "Måndag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Paul",
+    "Pål"
+   ]
+  },
+  "2027-01-26": {
+   "veckodag": "Tisdag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Bodil",
+    "Boel"
+   ]
+  },
+  "2027-01-27": {
+   "veckodag": "Onsdag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Göte",
+    "Göta"
+   ]
+  },
+  "2027-01-28": {
+   "veckodag": "Torsdag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Karl",
+    "Karla"
+   ]
+  },
+  "2027-01-29": {
+   "veckodag": "Fredag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Diana"
+   ]
+  },
+  "2027-01-30": {
+   "veckodag": "Lördag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Gunilla",
+    "Gunhild"
+   ]
+  },
+  "2027-01-31": {
+   "veckodag": "Söndag",
+   "rod_dag": true,
+   "helgdag": null,
+   "namnsdag": [
+    "Ivar",
+    "Joar"
+   ]
+  },
+  "2027-02-01": {
+   "veckodag": "Måndag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Max",
+    "Maximilian"
+   ]
+  },
+  "2027-02-02": {
+   "veckodag": "Tisdag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": []
+  },
+  "2027-02-03": {
+   "veckodag": "Onsdag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Disa",
+    "Hjördis"
+   ]
+  },
+  "2027-02-04": {
+   "veckodag": "Torsdag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Ansgar",
+    "Anselm"
+   ]
+  },
+  "2027-02-05": {
+   "veckodag": "Fredag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Agata",
+    "Agda"
+   ]
+  },
+  "2027-02-06": {
+   "veckodag": "Lördag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Dorotea",
+    "Doris"
+   ]
+  },
+  "2027-02-07": {
+   "veckodag": "Söndag",
+   "rod_dag": true,
+   "helgdag": null,
+   "namnsdag": [
+    "Rikard",
+    "Dick"
+   ]
+  },
+  "2027-02-08": {
+   "veckodag": "Måndag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Berta",
+    "Bert"
+   ]
+  },
+  "2027-02-09": {
+   "veckodag": "Tisdag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Fanny",
+    "Franciska"
+   ]
+  },
+  "2027-02-10": {
+   "veckodag": "Onsdag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Iris"
+   ]
+  },
+  "2027-02-11": {
+   "veckodag": "Torsdag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Yngve",
+    "Inge"
+   ]
+  },
+  "2027-02-12": {
+   "veckodag": "Fredag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Evelina",
+    "Evy"
+   ]
+  },
+  "2027-02-13": {
+   "veckodag": "Lördag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Agne",
+    "Ove"
+   ]
+  },
+  "2027-02-14": {
+   "veckodag": "Söndag",
+   "rod_dag": true,
+   "helgdag": null,
+   "namnsdag": [
+    "Valentin"
+   ]
+  },
+  "2027-02-15": {
+   "veckodag": "Måndag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Sigfrid"
+   ]
+  },
+  "2027-02-16": {
+   "veckodag": "Tisdag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Julia",
+    "Julius"
+   ]
+  },
+  "2027-02-17": {
+   "veckodag": "Onsdag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Alexandra",
+    "Sandra"
+   ]
+  },
+  "2027-02-18": {
+   "veckodag": "Torsdag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Frida",
+    "Fritiof"
+   ]
+  },
+  "2027-02-19": {
+   "veckodag": "Fredag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Gabriella",
+    "Ella"
+   ]
+  },
+  "2027-02-20": {
+   "veckodag": "Lördag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Vivianne"
+   ]
+  },
+  "2027-02-21": {
+   "veckodag": "Söndag",
+   "rod_dag": true,
+   "helgdag": null,
+   "namnsdag": [
+    "Hilding"
+   ]
+  },
+  "2027-02-22": {
+   "veckodag": "Måndag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Pia"
+   ]
+  },
+  "2027-02-23": {
+   "veckodag": "Tisdag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Torsten",
+    "Torun"
+   ]
+  },
+  "2027-02-24": {
+   "veckodag": "Onsdag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Mattias",
+    "Mats"
+   ]
+  },
+  "2027-02-25": {
+   "veckodag": "Torsdag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Sigvard",
+    "Sivert"
+   ]
+  },
+  "2027-02-26": {
+   "veckodag": "Fredag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Torgny",
+    "Torkel"
+   ]
+  },
+  "2027-02-27": {
+   "veckodag": "Lördag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Lage"
+   ]
+  },
+  "2027-02-28": {
+   "veckodag": "Söndag",
+   "rod_dag": true,
+   "helgdag": null,
+   "namnsdag": [
+    "Maria"
+   ]
+  },
+  "2027-03-01": {
+   "veckodag": "Måndag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Albin",
+    "Elvira"
+   ]
+  },
+  "2027-03-02": {
+   "veckodag": "Tisdag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Ernst",
+    "Erna"
+   ]
+  },
+  "2027-03-03": {
+   "veckodag": "Onsdag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Gunborg",
+    "Gunvor"
+   ]
+  },
+  "2027-03-04": {
+   "veckodag": "Torsdag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Adrian",
+    "Adriana"
+   ]
+  },
+  "2027-03-05": {
+   "veckodag": "Fredag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Tora",
+    "Tove"
+   ]
+  },
+  "2027-03-06": {
+   "veckodag": "Lördag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Ebba",
+    "Ebbe"
+   ]
+  },
+  "2027-03-07": {
+   "veckodag": "Söndag",
+   "rod_dag": true,
+   "helgdag": null,
+   "namnsdag": [
+    "Camilla"
+   ]
+  },
+  "2027-03-08": {
+   "veckodag": "Måndag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Siv",
+    "Saga"
+   ]
+  },
+  "2027-03-09": {
+   "veckodag": "Tisdag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Torbjörn",
+    "Torleif"
+   ]
+  },
+  "2027-03-10": {
+   "veckodag": "Onsdag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Edla",
+    "Ada"
+   ]
+  },
+  "2027-03-11": {
+   "veckodag": "Torsdag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Edvin",
+    "Egon"
+   ]
+  },
+  "2027-03-12": {
+   "veckodag": "Fredag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Viktoria"
+   ]
+  },
+  "2027-03-13": {
+   "veckodag": "Lördag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Greger"
+   ]
+  },
+  "2027-03-14": {
+   "veckodag": "Söndag",
+   "rod_dag": true,
+   "helgdag": null,
+   "namnsdag": [
+    "Matilda",
+    "Maud"
+   ]
+  },
+  "2027-03-15": {
+   "veckodag": "Måndag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Kristoffer",
+    "Christel"
+   ]
+  },
+  "2027-03-16": {
+   "veckodag": "Tisdag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Herbert",
+    "Gilbert"
+   ]
+  },
+  "2027-03-17": {
+   "veckodag": "Onsdag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Gertrud"
+   ]
+  },
+  "2027-03-18": {
+   "veckodag": "Torsdag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Edvard",
+    "Edmund"
+   ]
+  },
+  "2027-03-19": {
+   "veckodag": "Fredag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Josef",
+    "Josefina"
+   ]
+  },
+  "2027-03-20": {
+   "veckodag": "Lördag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Joakim",
+    "Kim"
+   ]
+  },
+  "2027-03-21": {
+   "veckodag": "Söndag",
+   "rod_dag": true,
+   "helgdag": null,
+   "namnsdag": [
+    "Bengt"
+   ]
+  },
+  "2027-03-22": {
+   "veckodag": "Måndag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Kennet",
+    "Kent"
+   ]
+  },
+  "2027-03-23": {
+   "veckodag": "Tisdag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Gerda",
+    "Gerd"
+   ]
+  },
+  "2027-03-24": {
+   "veckodag": "Onsdag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Gabriel",
+    "Rafael"
+   ]
+  },
+  "2027-03-25": {
+   "veckodag": "Torsdag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": []
+  },
+  "2027-03-26": {
+   "veckodag": "Fredag",
+   "rod_dag": true,
+   "helgdag": "Långfredagen",
+   "namnsdag": [
+    "Emanuel"
+   ]
+  },
+  "2027-03-27": {
+   "veckodag": "Lördag",
+   "rod_dag": false,
+   "helgdag": "Påskafton",
+   "namnsdag": [
+    "Rudolf",
+    "Ralf"
+   ]
+  },
+  "2027-03-28": {
+   "veckodag": "Söndag",
+   "rod_dag": true,
+   "helgdag": "Påskdagen",
+   "namnsdag": [
+    "Malkolm",
+    "Morgan"
+   ]
+  },
+  "2027-03-29": {
+   "veckodag": "Måndag",
+   "rod_dag": true,
+   "helgdag": "Annandag påsk",
+   "namnsdag": [
+    "Jonas",
+    "Jens"
+   ]
+  },
+  "2027-03-30": {
+   "veckodag": "Tisdag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Holger",
+    "Holmfrid"
+   ]
+  },
+  "2027-03-31": {
+   "veckodag": "Onsdag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Ester"
+   ]
+  },
+  "2027-04-01": {
+   "veckodag": "Torsdag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Harald",
+    "Hervor"
+   ]
+  },
+  "2027-04-02": {
+   "veckodag": "Fredag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Gudmund",
+    "Ingemund"
+   ]
+  },
+  "2027-04-03": {
+   "veckodag": "Lördag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Ferdinand",
+    "Nanna"
+   ]
+  },
+  "2027-04-04": {
+   "veckodag": "Söndag",
+   "rod_dag": true,
+   "helgdag": null,
+   "namnsdag": [
+    "Marianne",
+    "Marlene"
+   ]
+  },
+  "2027-04-05": {
+   "veckodag": "Måndag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Irene",
+    "Irja"
+   ]
+  },
+  "2027-04-06": {
+   "veckodag": "Tisdag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Vilhelm",
+    "William"
+   ]
+  },
+  "2027-04-07": {
+   "veckodag": "Onsdag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Irma",
+    "Irmelin"
+   ]
+  },
+  "2027-04-08": {
+   "veckodag": "Torsdag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Nadja",
+    "Tanja"
+   ]
+  },
+  "2027-04-09": {
+   "veckodag": "Fredag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Otto",
+    "Ottilia"
+   ]
+  },
+  "2027-04-10": {
+   "veckodag": "Lördag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Ingvar",
+    "Ingvor"
+   ]
+  },
+  "2027-04-11": {
+   "veckodag": "Söndag",
+   "rod_dag": true,
+   "helgdag": null,
+   "namnsdag": [
+    "Ulf",
+    "Ylva"
+   ]
+  },
+  "2027-04-12": {
+   "veckodag": "Måndag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Liv"
+   ]
+  },
+  "2027-04-13": {
+   "veckodag": "Tisdag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Artur",
+    "Douglas"
+   ]
+  },
+  "2027-04-14": {
+   "veckodag": "Onsdag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Tiburtius"
+   ]
+  },
+  "2027-04-15": {
+   "veckodag": "Torsdag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Olivia",
+    "Oliver"
+   ]
+  },
+  "2027-04-16": {
+   "veckodag": "Fredag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Patrik",
+    "Patricia"
+   ]
+  },
+  "2027-04-17": {
+   "veckodag": "Lördag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Elias",
+    "Elis"
+   ]
+  },
+  "2027-04-18": {
+   "veckodag": "Söndag",
+   "rod_dag": true,
+   "helgdag": null,
+   "namnsdag": [
+    "Valdemar",
+    "Volmar"
+   ]
+  },
+  "2027-04-19": {
+   "veckodag": "Måndag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Olaus",
+    "Ola"
+   ]
+  },
+  "2027-04-20": {
+   "veckodag": "Tisdag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Amalia",
+    "Amelie"
+   ]
+  },
+  "2027-04-21": {
+   "veckodag": "Onsdag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Anneli",
+    "Annika"
+   ]
+  },
+  "2027-04-22": {
+   "veckodag": "Torsdag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Allan",
+    "Glenn"
+   ]
+  },
+  "2027-04-23": {
+   "veckodag": "Fredag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Georg",
+    "Göran"
+   ]
+  },
+  "2027-04-24": {
+   "veckodag": "Lördag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Vega"
+   ]
+  },
+  "2027-04-25": {
+   "veckodag": "Söndag",
+   "rod_dag": true,
+   "helgdag": null,
+   "namnsdag": [
+    "Markus"
+   ]
+  },
+  "2027-04-26": {
+   "veckodag": "Måndag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Teresia",
+    "Terese"
+   ]
+  },
+  "2027-04-27": {
+   "veckodag": "Tisdag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Engelbrekt"
+   ]
+  },
+  "2027-04-28": {
+   "veckodag": "Onsdag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Ture",
+    "Tyra"
+   ]
+  },
+  "2027-04-29": {
+   "veckodag": "Torsdag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Tyko"
+   ]
+  },
+  "2027-04-30": {
+   "veckodag": "Fredag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Mariana"
+   ]
+  },
+  "2027-05-01": {
+   "veckodag": "Lördag",
+   "rod_dag": true,
+   "helgdag": "Första Maj",
+   "namnsdag": [
+    "Valborg"
+   ]
+  },
+  "2027-05-02": {
+   "veckodag": "Söndag",
+   "rod_dag": true,
+   "helgdag": null,
+   "namnsdag": [
+    "Filip",
+    "Filippa"
+   ]
+  },
+  "2027-05-03": {
+   "veckodag": "Måndag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "John",
+    "Jane"
+   ]
+  },
+  "2027-05-04": {
+   "veckodag": "Tisdag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Monika",
+    "Mona"
+   ]
+  },
+  "2027-05-05": {
+   "veckodag": "Onsdag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Gotthard",
+    "Erhard"
+   ]
+  },
+  "2027-05-06": {
+   "veckodag": "Torsdag",
+   "rod_dag": true,
+   "helgdag": "Kristi himmelsfärdsdag",
+   "namnsdag": [
+    "Marit",
+    "Rita"
+   ]
+  },
+  "2027-05-07": {
+   "veckodag": "Fredag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Carina",
+    "Carita"
+   ]
+  },
+  "2027-05-08": {
+   "veckodag": "Lördag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Åke"
+   ]
+  },
+  "2027-05-09": {
+   "veckodag": "Söndag",
+   "rod_dag": true,
+   "helgdag": null,
+   "namnsdag": [
+    "Reidar",
+    "Reidun"
+   ]
+  },
+  "2027-05-10": {
+   "veckodag": "Måndag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Esbjörn",
+    "Styrbjörn"
+   ]
+  },
+  "2027-05-11": {
+   "veckodag": "Tisdag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Märta",
+    "Märit"
+   ]
+  },
+  "2027-05-12": {
+   "veckodag": "Onsdag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Charlotta",
+    "Lotta"
+   ]
+  },
+  "2027-05-13": {
+   "veckodag": "Torsdag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Linnea",
+    "Linn"
+   ]
+  },
+  "2027-05-14": {
+   "veckodag": "Fredag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Halvard",
+    "Halvar"
+   ]
+  },
+  "2027-05-15": {
+   "veckodag": "Lördag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Sofia",
+    "Sonja"
+   ]
+  },
+  "2027-05-16": {
+   "veckodag": "Söndag",
+   "rod_dag": true,
+   "helgdag": "Pingstdagen",
+   "namnsdag": [
+    "Ronald",
+    "Ronny"
+   ]
+  },
+  "2027-05-17": {
+   "veckodag": "Måndag",
+   "rod_dag": false,
+   "helgdag": "Annandag pingst",
+   "namnsdag": [
+    "Rebecka",
+    "Ruben"
+   ]
+  },
+  "2027-05-18": {
+   "veckodag": "Tisdag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Erik"
+   ]
+  },
+  "2027-05-19": {
+   "veckodag": "Onsdag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Maj",
+    "Majken"
+   ]
+  },
+  "2027-05-20": {
+   "veckodag": "Torsdag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Karolina",
+    "Carola"
+   ]
+  },
+  "2027-05-21": {
+   "veckodag": "Fredag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Konstantin",
+    "Conny"
+   ]
+  },
+  "2027-05-22": {
+   "veckodag": "Lördag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Hemming",
+    "Henning"
+   ]
+  },
+  "2027-05-23": {
+   "veckodag": "Söndag",
+   "rod_dag": true,
+   "helgdag": null,
+   "namnsdag": [
+    "Desideria",
+    "Desirée"
+   ]
+  },
+  "2027-05-24": {
+   "veckodag": "Måndag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Ivan",
+    "Vanja"
+   ]
+  },
+  "2027-05-25": {
+   "veckodag": "Tisdag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Urban"
+   ]
+  },
+  "2027-05-26": {
+   "veckodag": "Onsdag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Vilhelmina",
+    "Vilma"
+   ]
+  },
+  "2027-05-27": {
+   "veckodag": "Torsdag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Beda",
+    "Blenda"
+   ]
+  },
+  "2027-05-28": {
+   "veckodag": "Fredag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Ingeborg",
+    "Borghild"
+   ]
+  },
+  "2027-05-29": {
+   "veckodag": "Lördag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Yvonne",
+    "Jeanette"
+   ]
+  },
+  "2027-05-30": {
+   "veckodag": "Söndag",
+   "rod_dag": true,
+   "helgdag": null,
+   "namnsdag": [
+    "Vera",
+    "Veronika"
+   ]
+  },
+  "2027-05-31": {
+   "veckodag": "Måndag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Petronella",
+    "Pernilla"
+   ]
+  },
+  "2027-06-01": {
+   "veckodag": "Tisdag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Gun",
+    "Gunnel"
+   ]
+  },
+  "2027-06-02": {
+   "veckodag": "Onsdag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Rutger",
+    "Roger"
+   ]
+  },
+  "2027-06-03": {
+   "veckodag": "Torsdag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Ingemar",
+    "Gudmar"
+   ]
+  },
+  "2027-06-04": {
+   "veckodag": "Fredag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Solbritt",
+    "Solveig"
+   ]
+  },
+  "2027-06-05": {
+   "veckodag": "Lördag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Bo"
+   ]
+  },
+  "2027-06-06": {
+   "veckodag": "Söndag",
+   "rod_dag": true,
+   "helgdag": "Sveriges nationaldag",
+   "namnsdag": [
+    "Gustav",
+    "Gösta"
+   ]
+  },
+  "2027-06-07": {
+   "veckodag": "Måndag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Robert",
+    "Robin"
+   ]
+  },
+  "2027-06-08": {
+   "veckodag": "Tisdag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Eivor",
+    "Majvor"
+   ]
+  },
+  "2027-06-09": {
+   "veckodag": "Onsdag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Börje",
+    "Birger"
+   ]
+  },
+  "2027-06-10": {
+   "veckodag": "Torsdag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Svante",
+    "Boris"
+   ]
+  },
+  "2027-06-11": {
+   "veckodag": "Fredag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Bertil",
+    "Berthold"
+   ]
+  },
+  "2027-06-12": {
+   "veckodag": "Lördag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Eskil"
+   ]
+  },
+  "2027-06-13": {
+   "veckodag": "Söndag",
+   "rod_dag": true,
+   "helgdag": null,
+   "namnsdag": [
+    "Aina",
+    "Aino"
+   ]
+  },
+  "2027-06-14": {
+   "veckodag": "Måndag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Håkan",
+    "Hakon"
+   ]
+  },
+  "2027-06-15": {
+   "veckodag": "Tisdag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Margit",
+    "Margot"
+   ]
+  },
+  "2027-06-16": {
+   "veckodag": "Onsdag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Axel",
+    "Axelina"
+   ]
+  },
+  "2027-06-17": {
+   "veckodag": "Torsdag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Torborg",
+    "Torvald"
+   ]
+  },
+  "2027-06-18": {
+   "veckodag": "Fredag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Björn",
+    "Bjarne"
+   ]
+  },
+  "2027-06-19": {
+   "veckodag": "Lördag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Germund",
+    "Görel"
+   ]
+  },
+  "2027-06-20": {
+   "veckodag": "Söndag",
+   "rod_dag": true,
+   "helgdag": null,
+   "namnsdag": [
+    "Linda"
+   ]
+  },
+  "2027-06-21": {
+   "veckodag": "Måndag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Alf",
+    "Alvar"
+   ]
+  },
+  "2027-06-22": {
+   "veckodag": "Tisdag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Paulina",
+    "Paula"
+   ]
+  },
+  "2027-06-23": {
+   "veckodag": "Onsdag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Adolf",
+    "Alice"
+   ]
+  },
+  "2027-06-24": {
+   "veckodag": "Torsdag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": []
+  },
+  "2027-06-25": {
+   "veckodag": "Fredag",
+   "rod_dag": false,
+   "helgdag": "Midsommarafton",
+   "namnsdag": [
+    "David",
+    "Salomon"
+   ]
+  },
+  "2027-06-26": {
+   "veckodag": "Lördag",
+   "rod_dag": true,
+   "helgdag": "Midsommardagen",
+   "namnsdag": [
+    "Rakel",
+    "Lea"
+   ]
+  },
+  "2027-06-27": {
+   "veckodag": "Söndag",
+   "rod_dag": true,
+   "helgdag": null,
+   "namnsdag": [
+    "Selma",
+    "Fingal"
+   ]
+  },
+  "2027-06-28": {
+   "veckodag": "Måndag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Leo"
+   ]
+  },
+  "2027-06-29": {
+   "veckodag": "Tisdag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Peter",
+    "Petra"
+   ]
+  },
+  "2027-06-30": {
+   "veckodag": "Onsdag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Elof",
+    "Leif"
+   ]
+  },
+  "2027-07-01": {
+   "veckodag": "Torsdag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Aron",
+    "Mirjam"
+   ]
+  },
+  "2027-07-02": {
+   "veckodag": "Fredag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Rosa",
+    "Rosita"
+   ]
+  },
+  "2027-07-03": {
+   "veckodag": "Lördag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Aurora"
+   ]
+  },
+  "2027-07-04": {
+   "veckodag": "Söndag",
+   "rod_dag": true,
+   "helgdag": null,
+   "namnsdag": [
+    "Ulrika",
+    "Ulla"
+   ]
+  },
+  "2027-07-05": {
+   "veckodag": "Måndag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Laila",
+    "Ritva"
+   ]
+  },
+  "2027-07-06": {
+   "veckodag": "Tisdag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Esaias",
+    "Jessika"
+   ]
+  },
+  "2027-07-07": {
+   "veckodag": "Onsdag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Klas"
+   ]
+  },
+  "2027-07-08": {
+   "veckodag": "Torsdag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Kjell"
+   ]
+  },
+  "2027-07-09": {
+   "veckodag": "Fredag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Jörgen",
+    "Örjan"
+   ]
+  },
+  "2027-07-10": {
+   "veckodag": "Lördag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "André",
+    "Andrea"
+   ]
+  },
+  "2027-07-11": {
+   "veckodag": "Söndag",
+   "rod_dag": true,
+   "helgdag": null,
+   "namnsdag": [
+    "Eleonora",
+    "Ellinor"
+   ]
+  },
+  "2027-07-12": {
+   "veckodag": "Måndag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Herman",
+    "Hermine"
+   ]
+  },
+  "2027-07-13": {
+   "veckodag": "Tisdag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Joel",
+    "Judit"
+   ]
+  },
+  "2027-07-14": {
+   "veckodag": "Onsdag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Folke"
+   ]
+  },
+  "2027-07-15": {
+   "veckodag": "Torsdag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Ragnhild",
+    "Ragnvald"
+   ]
+  },
+  "2027-07-16": {
+   "veckodag": "Fredag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Reinhold",
+    "Reine"
+   ]
+  },
+  "2027-07-17": {
+   "veckodag": "Lördag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Bruno"
+   ]
+  },
+  "2027-07-18": {
+   "veckodag": "Söndag",
+   "rod_dag": true,
+   "helgdag": null,
+   "namnsdag": [
+    "Fredrik",
+    "Fritz"
+   ]
+  },
+  "2027-07-19": {
+   "veckodag": "Måndag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Sara"
+   ]
+  },
+  "2027-07-20": {
+   "veckodag": "Tisdag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Margareta",
+    "Greta"
+   ]
+  },
+  "2027-07-21": {
+   "veckodag": "Onsdag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Johanna"
+   ]
+  },
+  "2027-07-22": {
+   "veckodag": "Torsdag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Magdalena",
+    "Madeleine"
+   ]
+  },
+  "2027-07-23": {
+   "veckodag": "Fredag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Emma",
+    "Emmy"
+   ]
+  },
+  "2027-07-24": {
+   "veckodag": "Lördag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Kristina",
+    "Kerstin"
+   ]
+  },
+  "2027-07-25": {
+   "veckodag": "Söndag",
+   "rod_dag": true,
+   "helgdag": null,
+   "namnsdag": [
+    "Jakob"
+   ]
+  },
+  "2027-07-26": {
+   "veckodag": "Måndag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Jesper",
+    "Jasmine"
+   ]
+  },
+  "2027-07-27": {
+   "veckodag": "Tisdag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Marta"
+   ]
+  },
+  "2027-07-28": {
+   "veckodag": "Onsdag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Botvid",
+    "Seved"
+   ]
+  },
+  "2027-07-29": {
+   "veckodag": "Torsdag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Olof"
+   ]
+  },
+  "2027-07-30": {
+   "veckodag": "Fredag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Algot"
+   ]
+  },
+  "2027-07-31": {
+   "veckodag": "Lördag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Helena",
+    "Elin"
+   ]
+  },
+  "2027-08-01": {
+   "veckodag": "Söndag",
+   "rod_dag": true,
+   "helgdag": null,
+   "namnsdag": [
+    "Per"
+   ]
+  },
+  "2027-08-02": {
+   "veckodag": "Måndag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Karin",
+    "Kajsa"
+   ]
+  },
+  "2027-08-03": {
+   "veckodag": "Tisdag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Tage"
+   ]
+  },
+  "2027-08-04": {
+   "veckodag": "Onsdag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Arne",
+    "Arnold"
+   ]
+  },
+  "2027-08-05": {
+   "veckodag": "Torsdag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Ulrik",
+    "Alrik"
+   ]
+  },
+  "2027-08-06": {
+   "veckodag": "Fredag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Alfons",
+    "Inez"
+   ]
+  },
+  "2027-08-07": {
+   "veckodag": "Lördag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Dennis",
+    "Denise"
+   ]
+  },
+  "2027-08-08": {
+   "veckodag": "Söndag",
+   "rod_dag": true,
+   "helgdag": null,
+   "namnsdag": [
+    "Silvia",
+    "Sylvia"
+   ]
+  },
+  "2027-08-09": {
+   "veckodag": "Måndag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Roland"
+   ]
+  },
+  "2027-08-10": {
+   "veckodag": "Tisdag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Lars"
+   ]
+  },
+  "2027-08-11": {
+   "veckodag": "Onsdag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Susanna"
+   ]
+  },
+  "2027-08-12": {
+   "veckodag": "Torsdag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Klara"
+   ]
+  },
+  "2027-08-13": {
+   "veckodag": "Fredag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Kaj"
+   ]
+  },
+  "2027-08-14": {
+   "veckodag": "Lördag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Uno"
+   ]
+  },
+  "2027-08-15": {
+   "veckodag": "Söndag",
+   "rod_dag": true,
+   "helgdag": null,
+   "namnsdag": [
+    "Stella",
+    "Estelle"
+   ]
+  },
+  "2027-08-16": {
+   "veckodag": "Måndag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Brynolf"
+   ]
+  },
+  "2027-08-17": {
+   "veckodag": "Tisdag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Verner",
+    "Valter"
+   ]
+  },
+  "2027-08-18": {
+   "veckodag": "Onsdag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Ellen",
+    "Lena"
+   ]
+  },
+  "2027-08-19": {
+   "veckodag": "Torsdag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Magnus",
+    "Måns"
+   ]
+  },
+  "2027-08-20": {
+   "veckodag": "Fredag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Bernhard",
+    "Bernt"
+   ]
+  },
+  "2027-08-21": {
+   "veckodag": "Lördag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Jon",
+    "Jonna"
+   ]
+  },
+  "2027-08-22": {
+   "veckodag": "Söndag",
+   "rod_dag": true,
+   "helgdag": null,
+   "namnsdag": [
+    "Henrietta",
+    "Henrika"
+   ]
+  },
+  "2027-08-23": {
+   "veckodag": "Måndag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Signe",
+    "Signhild"
+   ]
+  },
+  "2027-08-24": {
+   "veckodag": "Tisdag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Bartolomeus"
+   ]
+  },
+  "2027-08-25": {
+   "veckodag": "Onsdag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Lovisa",
+    "Louise"
+   ]
+  },
+  "2027-08-26": {
+   "veckodag": "Torsdag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Östen"
+   ]
+  },
+  "2027-08-27": {
+   "veckodag": "Fredag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Rolf",
+    "Raoul"
+   ]
+  },
+  "2027-08-28": {
+   "veckodag": "Lördag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Fatima",
+    "Leila"
+   ]
+  },
+  "2027-08-29": {
+   "veckodag": "Söndag",
+   "rod_dag": true,
+   "helgdag": null,
+   "namnsdag": [
+    "Hans",
+    "Hampus"
+   ]
+  },
+  "2027-08-30": {
+   "veckodag": "Måndag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Albert",
+    "Albertina"
+   ]
+  },
+  "2027-08-31": {
+   "veckodag": "Tisdag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Arvid",
+    "Vidar"
+   ]
+  },
+  "2027-09-01": {
+   "veckodag": "Onsdag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Sam",
+    "Samuel"
+   ]
+  },
+  "2027-09-02": {
+   "veckodag": "Torsdag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Justus",
+    "Justina"
+   ]
+  },
+  "2027-09-03": {
+   "veckodag": "Fredag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Alfhild",
+    "Alva"
+   ]
+  },
+  "2027-09-04": {
+   "veckodag": "Lördag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Gisela"
+   ]
+  },
+  "2027-09-05": {
+   "veckodag": "Söndag",
+   "rod_dag": true,
+   "helgdag": null,
+   "namnsdag": [
+    "Adela",
+    "Heidi"
+   ]
+  },
+  "2027-09-06": {
+   "veckodag": "Måndag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Lilian",
+    "Lilly"
+   ]
+  },
+  "2027-09-07": {
+   "veckodag": "Tisdag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Kevin",
+    "Roy"
+   ]
+  },
+  "2027-09-08": {
+   "veckodag": "Onsdag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Alma",
+    "Hulda"
+   ]
+  },
+  "2027-09-09": {
+   "veckodag": "Torsdag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Anita",
+    "Annette"
+   ]
+  },
+  "2027-09-10": {
+   "veckodag": "Fredag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Tord",
+    "Turid"
+   ]
+  },
+  "2027-09-11": {
+   "veckodag": "Lördag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Dagny",
+    "Helny"
+   ]
+  },
+  "2027-09-12": {
+   "veckodag": "Söndag",
+   "rod_dag": true,
+   "helgdag": null,
+   "namnsdag": [
+    "Åsa",
+    "Åslög"
+   ]
+  },
+  "2027-09-13": {
+   "veckodag": "Måndag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Sture"
+   ]
+  },
+  "2027-09-14": {
+   "veckodag": "Tisdag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Ida"
+   ]
+  },
+  "2027-09-15": {
+   "veckodag": "Onsdag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Sigrid",
+    "Siri"
+   ]
+  },
+  "2027-09-16": {
+   "veckodag": "Torsdag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Dag",
+    "Daga"
+   ]
+  },
+  "2027-09-17": {
+   "veckodag": "Fredag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Hildegard",
+    "Magnhild"
+   ]
+  },
+  "2027-09-18": {
+   "veckodag": "Lördag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Orvar"
+   ]
+  },
+  "2027-09-19": {
+   "veckodag": "Söndag",
+   "rod_dag": true,
+   "helgdag": null,
+   "namnsdag": [
+    "Fredrika"
+   ]
+  },
+  "2027-09-20": {
+   "veckodag": "Måndag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Elise",
+    "Lisa"
+   ]
+  },
+  "2027-09-21": {
+   "veckodag": "Tisdag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Matteus"
+   ]
+  },
+  "2027-09-22": {
+   "veckodag": "Onsdag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Maurits",
+    "Moritz"
+   ]
+  },
+  "2027-09-23": {
+   "veckodag": "Torsdag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Tekla",
+    "Tea"
+   ]
+  },
+  "2027-09-24": {
+   "veckodag": "Fredag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Gerhard",
+    "Gert"
+   ]
+  },
+  "2027-09-25": {
+   "veckodag": "Lördag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Tryggve"
+   ]
+  },
+  "2027-09-26": {
+   "veckodag": "Söndag",
+   "rod_dag": true,
+   "helgdag": null,
+   "namnsdag": [
+    "Enar",
+    "Einar"
+   ]
+  },
+  "2027-09-27": {
+   "veckodag": "Måndag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Dagmar",
+    "Rigmor"
+   ]
+  },
+  "2027-09-28": {
+   "veckodag": "Tisdag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Lennart",
+    "Leonard"
+   ]
+  },
+  "2027-09-29": {
+   "veckodag": "Onsdag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Mikael",
+    "Mikaela"
+   ]
+  },
+  "2027-09-30": {
+   "veckodag": "Torsdag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Helge"
+   ]
+  },
+  "2027-10-01": {
+   "veckodag": "Fredag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Ragnar",
+    "Ragna"
+   ]
+  },
+  "2027-10-02": {
+   "veckodag": "Lördag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Ludvig",
+    "Love"
+   ]
+  },
+  "2027-10-03": {
+   "veckodag": "Söndag",
+   "rod_dag": true,
+   "helgdag": null,
+   "namnsdag": [
+    "Evald",
+    "Osvald"
+   ]
+  },
+  "2027-10-04": {
+   "veckodag": "Måndag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Frans",
+    "Frank"
+   ]
+  },
+  "2027-10-05": {
+   "veckodag": "Tisdag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Bror"
+   ]
+  },
+  "2027-10-06": {
+   "veckodag": "Onsdag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Jenny",
+    "Jennifer"
+   ]
+  },
+  "2027-10-07": {
+   "veckodag": "Torsdag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Birgitta",
+    "Britta"
+   ]
+  },
+  "2027-10-08": {
+   "veckodag": "Fredag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Nils"
+   ]
+  },
+  "2027-10-09": {
+   "veckodag": "Lördag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Ingrid",
+    "Inger"
+   ]
+  },
+  "2027-10-10": {
+   "veckodag": "Söndag",
+   "rod_dag": true,
+   "helgdag": null,
+   "namnsdag": [
+    "Harry",
+    "Harriet"
+   ]
+  },
+  "2027-10-11": {
+   "veckodag": "Måndag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Erling",
+    "Jarl"
+   ]
+  },
+  "2027-10-12": {
+   "veckodag": "Tisdag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Valfrid",
+    "Manfred"
+   ]
+  },
+  "2027-10-13": {
+   "veckodag": "Onsdag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Berit",
+    "Birgit"
+   ]
+  },
+  "2027-10-14": {
+   "veckodag": "Torsdag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Stellan"
+   ]
+  },
+  "2027-10-15": {
+   "veckodag": "Fredag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Hedvig",
+    "Hillevi"
+   ]
+  },
+  "2027-10-16": {
+   "veckodag": "Lördag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Finn"
+   ]
+  },
+  "2027-10-17": {
+   "veckodag": "Söndag",
+   "rod_dag": true,
+   "helgdag": null,
+   "namnsdag": [
+    "Antonia",
+    "Toini"
+   ]
+  },
+  "2027-10-18": {
+   "veckodag": "Måndag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Lukas"
+   ]
+  },
+  "2027-10-19": {
+   "veckodag": "Tisdag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Tore",
+    "Tor"
+   ]
+  },
+  "2027-10-20": {
+   "veckodag": "Onsdag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Sibylla"
+   ]
+  },
+  "2027-10-21": {
+   "veckodag": "Torsdag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Ursula",
+    "Yrsa"
+   ]
+  },
+  "2027-10-22": {
+   "veckodag": "Fredag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Marika",
+    "Marita"
+   ]
+  },
+  "2027-10-23": {
+   "veckodag": "Lördag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Severin",
+    "Sören"
+   ]
+  },
+  "2027-10-24": {
+   "veckodag": "Söndag",
+   "rod_dag": true,
+   "helgdag": null,
+   "namnsdag": [
+    "Evert",
+    "Eilert"
+   ]
+  },
+  "2027-10-25": {
+   "veckodag": "Måndag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Inga",
+    "Ingalill"
+   ]
+  },
+  "2027-10-26": {
+   "veckodag": "Tisdag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Amanda",
+    "Rasmus"
+   ]
+  },
+  "2027-10-27": {
+   "veckodag": "Onsdag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Sabina"
+   ]
+  },
+  "2027-10-28": {
+   "veckodag": "Torsdag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Simon",
+    "Simone"
+   ]
+  },
+  "2027-10-29": {
+   "veckodag": "Fredag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Viola"
+   ]
+  },
+  "2027-10-30": {
+   "veckodag": "Lördag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Elsa",
+    "Isabella"
+   ]
+  },
+  "2027-10-31": {
+   "veckodag": "Söndag",
+   "rod_dag": true,
+   "helgdag": null,
+   "namnsdag": [
+    "Edit",
+    "Edgar"
+   ]
+  },
+  "2027-11-01": {
+   "veckodag": "Måndag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": []
+  },
+  "2027-11-02": {
+   "veckodag": "Tisdag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Tobias"
+   ]
+  },
+  "2027-11-03": {
+   "veckodag": "Onsdag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Hubert",
+    "Hugo"
+   ]
+  },
+  "2027-11-04": {
+   "veckodag": "Torsdag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Sverker"
+   ]
+  },
+  "2027-11-05": {
+   "veckodag": "Fredag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Eugen",
+    "Eugenia"
+   ]
+  },
+  "2027-11-06": {
+   "veckodag": "Lördag",
+   "rod_dag": true,
+   "helgdag": "Alla helgons dag",
+   "namnsdag": [
+    "Gustav Adolf"
+   ]
+  },
+  "2027-11-07": {
+   "veckodag": "Söndag",
+   "rod_dag": true,
+   "helgdag": null,
+   "namnsdag": [
+    "Ingegerd",
+    "Ingela"
+   ]
+  },
+  "2027-11-08": {
+   "veckodag": "Måndag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Vendela"
+   ]
+  },
+  "2027-11-09": {
+   "veckodag": "Tisdag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Teodor",
+    "Teodora"
+   ]
+  },
+  "2027-11-10": {
+   "veckodag": "Onsdag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Martin",
+    "Martina"
+   ]
+  },
+  "2027-11-11": {
+   "veckodag": "Torsdag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Mårten"
+   ]
+  },
+  "2027-11-12": {
+   "veckodag": "Fredag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Konrad",
+    "Kurt"
+   ]
+  },
+  "2027-11-13": {
+   "veckodag": "Lördag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Kristian",
+    "Krister"
+   ]
+  },
+  "2027-11-14": {
+   "veckodag": "Söndag",
+   "rod_dag": true,
+   "helgdag": null,
+   "namnsdag": [
+    "Emil",
+    "Emilia"
+   ]
+  },
+  "2027-11-15": {
+   "veckodag": "Måndag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Leopold"
+   ]
+  },
+  "2027-11-16": {
+   "veckodag": "Tisdag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Vibeke",
+    "Viveka"
+   ]
+  },
+  "2027-11-17": {
+   "veckodag": "Onsdag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Naemi",
+    "Naima"
+   ]
+  },
+  "2027-11-18": {
+   "veckodag": "Torsdag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Lillemor",
+    "Moa"
+   ]
+  },
+  "2027-11-19": {
+   "veckodag": "Fredag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Elisabet",
+    "Lisbet"
+   ]
+  },
+  "2027-11-20": {
+   "veckodag": "Lördag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Pontus",
+    "Marina"
+   ]
+  },
+  "2027-11-21": {
+   "veckodag": "Söndag",
+   "rod_dag": true,
+   "helgdag": null,
+   "namnsdag": [
+    "Helga",
+    "Olga"
+   ]
+  },
+  "2027-11-22": {
+   "veckodag": "Måndag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Cecilia",
+    "Sissela"
+   ]
+  },
+  "2027-11-23": {
+   "veckodag": "Tisdag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Klemens"
+   ]
+  },
+  "2027-11-24": {
+   "veckodag": "Onsdag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Gudrun",
+    "Rune"
+   ]
+  },
+  "2027-11-25": {
+   "veckodag": "Torsdag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Katarina",
+    "Katja"
+   ]
+  },
+  "2027-11-26": {
+   "veckodag": "Fredag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Linus"
+   ]
+  },
+  "2027-11-27": {
+   "veckodag": "Lördag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Astrid",
+    "Asta"
+   ]
+  },
+  "2027-11-28": {
+   "veckodag": "Söndag",
+   "rod_dag": true,
+   "helgdag": null,
+   "namnsdag": [
+    "Malte"
+   ]
+  },
+  "2027-11-29": {
+   "veckodag": "Måndag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Sune"
+   ]
+  },
+  "2027-11-30": {
+   "veckodag": "Tisdag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Andreas",
+    "Anders"
+   ]
+  },
+  "2027-12-01": {
+   "veckodag": "Onsdag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Oskar",
+    "Ossian"
+   ]
+  },
+  "2027-12-02": {
+   "veckodag": "Torsdag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Beata",
+    "Beatrice"
+   ]
+  },
+  "2027-12-03": {
+   "veckodag": "Fredag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Lydia"
+   ]
+  },
+  "2027-12-04": {
+   "veckodag": "Lördag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Barbara",
+    "Barbro"
+   ]
+  },
+  "2027-12-05": {
+   "veckodag": "Söndag",
+   "rod_dag": true,
+   "helgdag": null,
+   "namnsdag": [
+    "Sven"
+   ]
+  },
+  "2027-12-06": {
+   "veckodag": "Måndag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Nikolaus",
+    "Niklas"
+   ]
+  },
+  "2027-12-07": {
+   "veckodag": "Tisdag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Angela",
+    "Angelika"
+   ]
+  },
+  "2027-12-08": {
+   "veckodag": "Onsdag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Virginia"
+   ]
+  },
+  "2027-12-09": {
+   "veckodag": "Torsdag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Anna"
+   ]
+  },
+  "2027-12-10": {
+   "veckodag": "Fredag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Malin",
+    "Malena"
+   ]
+  },
+  "2027-12-11": {
+   "veckodag": "Lördag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Daniel",
+    "Daniela"
+   ]
+  },
+  "2027-12-12": {
+   "veckodag": "Söndag",
+   "rod_dag": true,
+   "helgdag": null,
+   "namnsdag": [
+    "Alexander",
+    "Alexis"
+   ]
+  },
+  "2027-12-13": {
+   "veckodag": "Måndag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Lucia"
+   ]
+  },
+  "2027-12-14": {
+   "veckodag": "Tisdag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Sten",
+    "Sixten"
+   ]
+  },
+  "2027-12-15": {
+   "veckodag": "Onsdag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Gottfrid"
+   ]
+  },
+  "2027-12-16": {
+   "veckodag": "Torsdag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Assar"
+   ]
+  },
+  "2027-12-17": {
+   "veckodag": "Fredag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Stig"
+   ]
+  },
+  "2027-12-18": {
+   "veckodag": "Lördag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Abraham"
+   ]
+  },
+  "2027-12-19": {
+   "veckodag": "Söndag",
+   "rod_dag": true,
+   "helgdag": null,
+   "namnsdag": [
+    "Isak"
+   ]
+  },
+  "2027-12-20": {
+   "veckodag": "Måndag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Israel",
+    "Moses"
+   ]
+  },
+  "2027-12-21": {
+   "veckodag": "Tisdag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Tomas"
+   ]
+  },
+  "2027-12-22": {
+   "veckodag": "Onsdag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Natanael",
+    "Jonatan"
+   ]
+  },
+  "2027-12-23": {
+   "veckodag": "Torsdag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Adam"
+   ]
+  },
+  "2027-12-24": {
+   "veckodag": "Fredag",
+   "rod_dag": false,
+   "helgdag": "Julafton",
+   "namnsdag": [
+    "Eva"
+   ]
+  },
+  "2027-12-25": {
+   "veckodag": "Lördag",
+   "rod_dag": true,
+   "helgdag": "Juldagen",
+   "namnsdag": []
+  },
+  "2027-12-26": {
+   "veckodag": "Söndag",
+   "rod_dag": true,
+   "helgdag": "Annandag jul",
+   "namnsdag": [
+    "Stefan",
+    "Staffan"
+   ]
+  },
+  "2027-12-27": {
+   "veckodag": "Måndag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Johannes",
+    "Johan"
+   ]
+  },
+  "2027-12-28": {
+   "veckodag": "Tisdag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Benjamin"
+   ]
+  },
+  "2027-12-29": {
+   "veckodag": "Onsdag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Natalia",
+    "Natalie"
+   ]
+  },
+  "2027-12-30": {
+   "veckodag": "Torsdag",
+   "rod_dag": false,
+   "helgdag": null,
+   "namnsdag": [
+    "Abel",
+    "Set"
+   ]
+  },
+  "2027-12-31": {
+   "veckodag": "Fredag",
+   "rod_dag": false,
+   "helgdag": "Nyårsafton",
+   "namnsdag": [
+    "Sylvester"
+   ]
+  }
+ }
+}

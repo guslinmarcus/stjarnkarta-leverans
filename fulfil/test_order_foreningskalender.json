@@ -1,0 +1,23 @@
+{
+  "id": "kk-demo-ifk",
+  "product": "foreningskalender",
+  "language": "sv",
+  "style": "klassisk",
+  "format": "A4",
+  "club": {
+    "name": "IFK Exempel",
+    "team": "P14",
+    "sport": "Fotboll",
+    "venue": "Exempelvallen",
+    "colors": ["#1a6b3a", "#ffffff"]
+  },
+  "events": [
+    {"date": "2027-04-17", "title": "Hemma vs Any BK", "type": "match", "home": true},
+    {"date": "2027-04-24", "title": "Borta vs BK Sport", "type": "match", "home": false},
+    {"date": "2027-06-12", "title": "Sommarcupen", "type": "cup"},
+    {"date": "2027-08-15", "title": "Träningsläger", "type": "training"},
+    {"date": "2027-12-05", "title": "Säsongsavslutning", "type": "event"}
+  ],
+  "sponsors": ["Sponsor AB", "Lokala Bygg AB", "Byns Pizzeria"],
+  "footer_text": "Tack för att du stödjer IFK Exempel P14!"
+}

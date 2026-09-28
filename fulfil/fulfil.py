@@ -25,6 +25,12 @@ Jobbets fält "product" väljer generator + grind (saknas fältet = stjärnkarta
                                                                      valfri text; för svenska orter valfritt SMHI-dygnsväder;
                                                                      variant=husdjur ("gotcha day"); 4 stilar; enheter
                                                                      metriskt/imperialt efter språk+land; språk sv/en/de)
+    foreningskalender foreningskalender.py + grind_foreningskalender.py (klubbkalender 2027: svenska helgdagar
+                                                                     (Lag 1989:253) och namnsdagar (dagar_sverige.py),
+                                                                     månfaser, klubbens egna matcher/datum, färger,
+                                                                     sponsorrad; 4 stilar; bara språk=sv – se FORENINGAR.md.
+                                                                     Väggformat A4/A3 för Gelato-tryck ELLER digital pdf
+                                                                     för eget tryck (order.json-fältet "format"))
 
 Kartprodukterna hämtar data över nätet (Lantmäteriets FTP, Overpass, Nominatim). Ett tillfälligt nätfel
 lämnar jobbet i kön (nytt försök nästa körning, högst ett dygn). Körningen har en tidsbudget så att
@@ -52,9 +58,11 @@ PRODUCTS = {  # produkt: (generator, grind, tillåtna språk)
     "golfbana": ("golfbana", "grind_golfbana", ("en", "sv", "de")),
     "brollopskarta": ("brollopskarta", "grind_brollopskarta", ("en", "sv", "de")),
     "fodelsetavla": ("fodelsetavla", "grind_fodelsetavla", ("sv", "en", "de")),
+    "foreningskalender": ("foreningskalender", "grind_foreningskalender", ("sv",)),
 }
 GOLF_STYLES = ("klassisk", "vintage", "minimal", "mork")
 MANFAS_STYLES = ("mork", "ljus", "akvarell", "barnrum")
+FORENINGSKALENDER_STYLES = ("klassisk", "mork", "lekfull", "minimal")
 BROLLOP_STYLES = ("klassisk", "natt", "sepia", "blueprint")  # samma stilar som stadskarta (osmdata.STYLES)
 BROLLOP_ROLES = ("vigsel", "mottagning", "hotell", "parkering", "fest", "annat")
 FODELSE_STYLES = ("natur", "nordisk_minimal", "nattstjarna", "ballong")
@@ -155,6 +163,8 @@ def make_order(job):
         return make_brollop(job, lang)
     if product == "fodelsetavla":
         return make_fodelsetavla(job, lang)
+    if product == "foreningskalender":
+        return make_foreningskalender(job)
     g = geocode(job["city"], "SE" if product == "historisk" else job.get("country", ""))
     if not g:
         return None, "city_not_found"
@@ -339,6 +349,43 @@ def make_fodelsetavla(job, lang):
     return order, None
 
 
+FORENING_EVENT_TYP = ("match", "cup", "training", "event")
+
+
+def make_foreningskalender(job):
+    """Klubbkalendern (FORENINGAR.md §2.3 nr 1): inget ortsuppslag – all data kommer direkt från formuläret.
+    Bara språk=sv (svenska helgdagar/namnsdagar). Max 60 händelser (fler än så får ingen ryms på sidan ändå)."""
+    import re as _re
+    import dagar_sverige as _DS
+    forening_hex = _re.compile(r"^#[0-9a-fA-F]{6}$")
+    club_in = job.get("club") or {}
+    name = (club_in.get("name") or "").strip()[:60]
+    if not name:
+        return None, "club_name_missing"
+    club = {"name": name, "team": (club_in.get("team") or "").strip()[:20],
+            "sport": (club_in.get("sport") or "").strip()[:30], "venue": (club_in.get("venue") or "").strip()[:60]}
+    farger = [h.strip() for h in (club_in.get("colors") or []) if forening_hex.fullmatch((h or "").strip())][:2]
+    if not farger:
+        return None, "club_color_invalid"
+    club["colors"] = farger
+    events = []
+    for e in (job.get("events") or [])[:60]:
+        d = str(e.get("date") or "")
+        if not _re.fullmatch(r"\d{4}-\d{2}-\d{2}", d) or not d.startswith(str(_DS.AR)):
+            continue  # ett datum utanför kalenderåret hoppas bara över (ingen sida att lägga det på)
+        titel = (e.get("title") or "").strip()[:40]
+        if not titel:
+            continue
+        typ = e.get("type") if e.get("type") in FORENING_EVENT_TYP else "event"
+        events.append({"date": d, "title": titel, "type": typ, "home": bool(e.get("home"))})
+    sponsorer = [(s or "").strip()[:30] for s in (job.get("sponsors") or [])][:8]
+    sponsorer = [s for s in sponsorer if s]
+    style = job.get("style") if job.get("style") in FORENINGSKALENDER_STYLES else "klassisk"
+    fmt = job.get("format") if job.get("format") in ("A4", "A3") else "A4"
+    return {"id": job["id"], "product": "foreningskalender", "language": "sv", "style": style, "format": fmt,
+            "club": club, "events": events, "sponsors": sponsorer}, None
+
+
 def produce(order, workdir):
     """Kör generator + grind för orderns produkt. Returnerar (grindresultat, pdf) eller (None, felorsak)."""
     import importlib
@@ -353,7 +400,12 @@ def produce(order, workdir):
     except SystemExit as e:  # generatorn vägrar med en begriplig orsak (t.ex. förmörkelsen syns inte från orten)
         return None, str(e.code or "internal")  # ev. detaljer (golfbanans alternativ) i <id>_fel.json, se fail_detail
     r = gate.run(Path(workdir) / f"{order['id']}_meta.json")
-    pdf = Path(workdir) / f"{order['id']}_{order['languages'][0]}.pdf"
+    lang0 = (order.get("languages") or [order.get("language", "sv")])[0]
+    pdf = Path(workdir) / f"{order['id']}_{lang0}.pdf"
+    if not pdf.exists():  # foreningskalender (bara sv, ett språk): generatorn skriver <id>.pdf utan språksuffix
+        alt = Path(workdir) / f"{order['id']}.pdf"
+        if alt.exists():
+            pdf = alt
     return r, pdf
 
 
@@ -395,7 +447,7 @@ def main():
                 if not r["godkand"]:
                     api("POST", f"/api/fail/{job['id']}", {"reason": "quality_gate", "detail": r["underkanda"]})
                     print(job["id"], "grind underkänd"); continue
-                api("POST", f"/api/done/{job['id']}?place={urllib.request.quote(order['place'])}",
+                api("POST", f"/api/done/{job['id']}?place={urllib.request.quote(order.get('place', ''))}",
                     pdf.read_bytes(), "application/pdf")
                 print(job["id"], order.get("product", "stjarnkarta"), "levererad")
         except Exception as e:  # en trasig order får aldrig stoppa de andra

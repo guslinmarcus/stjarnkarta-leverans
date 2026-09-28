@@ -414,6 +414,111 @@ ${v.options && v.options.length ? `<p><small>Courses we found:</small></p><ul>${
 </form>`);
 }
 
+// --- Klubbkalendern 2027 (fulfil/foreningskalender.py + grind_foreningskalender.py). Länk: /kalender
+// Eget sortiment: säljs direkt till föreningar (inte via Etsy), därför eget formulär/flöde utanför PRODUCTS ovan
+// (inget Etsy-ordernummer, inget språkval – bara svenska helgdagar/namnsdagar, se FORENINGAR.md).
+const KAL_STYLES = { klassisk: "Klassisk", mork: "Midnight", lekfull: "Lekfull", minimal: "Minimal" };
+const KAL_TYP = { match: "Match", cup: "Cup", training: "Träning/läger", event: "Övrigt" };
+const KAL_HEX = /^#[0-9a-fA-F]{6}$/;
+const KAL_EVENT_ROWS = 8, KAL_SPONSOR_ROWS = 4;
+const KAL_REASONS = {
+  club_name_missing: "Fyll i klubbens namn.",
+  club_color_invalid: "Ange minst en giltig klubbfärg.",
+  quality_gate: "Vår automatiska kvalitetskontroll stoppade kalendern. Skicka in igen – hör av dig till oss om det händer två gånger.",
+  internal: "Något gick fel på vår sida. Försök igen om en liten stund.",
+};
+function kalenderEventRow(i, e = {}) {
+  const opt = Object.entries(KAL_TYP).map(([k, n]) => `<option value="${k}"${e.type === k ? " selected" : ""}>${n}</option>`).join("");
+  return `<div class="row" style="margin-top:10px"><div style="flex:0 0 150px"><label for="ed${i}">Datum</label><input id="ed${i}" name="ed${i}" type="date" min="2027-01-01" max="2027-12-31" value="${esc(e.date)}"></div>
+<div><label for="et${i}">Rubrik</label><input id="et${i}" name="et${i}" maxlength="40" value="${esc(e.title)}" placeholder="Hemma vs Any BK"></div>
+<div style="flex:0 0 140px"><label for="ey${i}">Typ</label><select id="ey${i}" name="ey${i}">${opt}</select></div>
+<div style="flex:0 0 80px"><label style="visibility:hidden">Hemma</label><label style="display:flex;align-items:center;gap:6px;font:15px system-ui,sans-serif;color:var(--ink)"><input type="checkbox" id="eh${i}" name="eh${i}" value="1" style="width:auto"${e.home ? " checked" : ""}> Hemma</label></div></div>`;
+}
+function kalenderSponsorRow(i, s = "") {
+  return `<div style="margin-top:8px"><label for="s${i}" style="${i ? "position:absolute;width:1px;height:1px;overflow:hidden" : ""}">Sponsor ${i + 1}</label><input id="s${i}" name="s${i}" maxlength="30" value="${esc(s)}" placeholder="Sponsor AB"></div>`;
+}
+function foreningskalenderForm(v = {}, error = "") {
+  const club = v.club || {};
+  const events = v.events || []; const sponsors = v.sponsors || [];
+  const optStyle = Object.entries(KAL_STYLES).map(([k, n]) => `<label style="display:inline-flex;align-items:center;gap:6px;background:#0d1426;border:1px solid #33405f;border-radius:6px;padding:8px 12px;margin:4px 8px 0 0;font:15px system-ui,sans-serif"><input type="radio" name="style" value="${k}" style="width:auto"${(v.style || "klassisk") === k ? " checked" : ""}> ${n}</label>`).join("");
+  return page("Klubbkalender 2027", `
+<h1>Klubbkalender 2027</h1>
+<p>Fyll i klubbens uppgifter, matcher och andra viktiga datum. Vi skapar en tryckfärdig väggkalender (13 sidor: omslag
++ jan–dec) med svenska helgdagar, namnsdagar och månfaser automatiskt. Klart inom en timme.</p>
+${error ? `<p class="err">${esc(error)}</p>` : ""}
+<form method="post" action="/kalender">
+<label for="namn">Klubbens namn</label><input id="namn" name="namn" required maxlength="60" value="${esc(club.name)}" placeholder="IFK Exempel">
+<div class="row"><div><label for="lag">Lag/grupp (valfritt)</label><input id="lag" name="lag" maxlength="20" value="${esc(club.team)}" placeholder="P14"></div>
+<div><label for="sport">Idrott (valfritt)</label><input id="sport" name="sport" maxlength="30" value="${esc(club.sport)}" placeholder="Fotboll"></div></div>
+<label for="venue">Hemmaplan (valfritt)</label><input id="venue" name="venue" maxlength="60" value="${esc(club.venue)}" placeholder="Exempelvallen">
+<div class="row"><div><label for="farg1">Klubbfärg 1</label><input id="farg1" name="farg1" type="color" style="width:56px;padding:2px" value="${esc((club.colors || [])[0]) || "#1a6b3a"}"></div>
+<div><label for="farg2">Klubbfärg 2 (valfri)</label><input id="farg2" name="farg2" type="color" style="width:56px;padding:2px" value="${esc((club.colors || [])[1]) || "#ffffff"}"></div></div>
+<label>Stil</label><div>${optStyle}</div>
+<label for="format">Tryckformat (liggande)</label><select id="format" name="format">
+<option value="A4"${(v.format || "A4") === "A4" ? " selected" : ""}>A4 liggande – går att beställa tryckt</option>
+<option value="A3"${v.format === "A3" ? " selected" : ""}>A3 liggande – bara digital pdf för eget tryck</option>
+</select>
+<label>Matcher och viktiga datum (valfritt, upp till ${KAL_EVENT_ROWS})</label>
+${Array.from({ length: KAL_EVENT_ROWS }, (_, i) => kalenderEventRow(i, events[i])).join("")}
+<label style="margin-top:18px">Sponsorer i sidfoten (valfritt, upp till ${KAL_SPONSOR_ROWS})</label>
+${Array.from({ length: KAL_SPONSOR_ROWS }, (_, i) => kalenderSponsorRow(i, sponsors[i])).join("")}
+<label for="kontakt">Kontakt (e-post eller telefon, för leverans av kalendern)</label><input id="kontakt" name="kontakt" required maxlength="80" value="${esc(v.kontakt)}" placeholder="namn@klubben.se">
+<p style="margin-top:16px"><label style="display:flex;align-items:flex-start;gap:8px;font:15px system-ui,sans-serif;color:var(--ink)">
+<input type="checkbox" name="samtycke" required value="1" style="width:auto;margin-top:3px">
+Jag intygar att klubben har vårdnadshavarnas samtycke för de uppgifter som eventuellt läggs till, och har läst
+<a style="color:var(--gold)" href="/kalender-villkor" target="_blank">villkoren</a> om personuppgifter och radering.</label></p>
+<button type="submit">Skapa min klubbkalender</button>
+<p><small>Vi använder uppgifterna bara för att skapa er kalender. Text raderas automatiskt efter 12 månader, eventuella
+bilder efter högst 60 dagar. Moodly Sverige.</small></p>
+</form>`, undefined, "sv");
+}
+function kalenderVillkorPage() {
+  return page("Villkor – Klubbkalender 2027", `<h1>Villkor – Klubbkalender 2027</h1>
+<p><b>Vem ansvarar för vad.</b> Föreningen som beställer kalendern ansvarar för innehållet ni skickar in: klubbens
+namn, matcher, sponsorer och eventuella bilder. Moodly Sverige (org.nr 802556-3845) levererar den tekniska tjänsten
+men är inte den som samlat in eller publicerat era uppgifter.</p>
+<p><b>Bilder av barn och unga.</b> Om ni längre fram laddar upp bilder som visar spelare: föreningen ansvarar för
+samtycke från vårdnadshavarna. Bilderna visas aldrig offentligt av oss – bara i er egen kalenderfil. Vi raderar
+uppladdade bilder senast 60 dagar efter att kalendern är levererad. Vi rekommenderar förnamn (inte efternamn) om ni
+tar med namn.</p>
+<p><b>Vad som sker med er data.</b> Klubbnamn, lag, färger, matcher, sponsorer (text): lagras hos oss till dess ni
+raderar beställningen, dock max 12 månader. Uppladdade bilder (senare tillval): max 60 dagar efter leverans.
+Kontaktuppgiften ni anger: så länge som krävs för bokföring (7 år) för själva köpet.</p>
+<p><b>Vad ni får.</b> En pdf-fil med den färdiga kalendern och, om ni valt tryck, en tryckfärdig fil som skickas till
+vårt tryckeri för produktion. Moodly Sverige är personuppgiftsbiträde för uppgifter föreningen skickar in om sina
+medlemmar – föreningen är personuppgiftsansvarig.</p>
+<p><small>Utkast – inte juridisk rådgivning. Frågor: <a style="color:var(--gold)" href="mailto:guslinmarcus@gmail.com">guslinmarcus@gmail.com</a>.</small></p>`, undefined, "sv");
+}
+function parseKalender(f) {
+  const events = [];
+  for (let i = 0; i < KAL_EVENT_ROWS; i++) {
+    const date = String(f[`ed${i}`] || ""), title = String(f[`et${i}`] || "").trim().slice(0, 40);
+    if (!date && !title) continue;
+    events.push({ date, title, type: KAL_TYP[f[`ey${i}`]] ? f[`ey${i}`] : "event", home: f[`eh${i}`] === "1" });
+  }
+  const sponsors = [];
+  for (let i = 0; i < KAL_SPONSOR_ROWS; i++) { const s = String(f[`s${i}`] || "").trim().slice(0, 30); if (s) sponsors.push(s); }
+  const colors = [String(f.farg1 || "").trim(), String(f.farg2 || "").trim()].filter((h) => KAL_HEX.test(h) && h.toLowerCase() !== "#ffffff");
+  const farg1 = String(f.farg1 || "").trim();
+  if (KAL_HEX.test(farg1) && !colors.includes(farg1)) colors.unshift(farg1);
+  return {
+    club: { name: String(f.namn || "").trim().slice(0, 60), team: String(f.lag || "").trim().slice(0, 20),
+            sport: String(f.sport || "").trim().slice(0, 30), venue: String(f.venue || "").trim().slice(0, 60), colors: colors.slice(0, 2) },
+    events, sponsors, style: KAL_STYLES[f.style] ? f.style : "klassisk", format: f.format === "A3" ? "A3" : "A4",
+    kontakt: String(f.kontakt || "").trim().slice(0, 80),
+  };
+}
+function validateKalender(v) {
+  if (!v.club.name) return KAL_REASONS.club_name_missing;
+  if (!v.club.colors.length) return KAL_REASONS.club_color_invalid;
+  if (!TEXT_OK.test(v.club.name) || !TEXT_OK.test(v.club.team) || !TEXT_OK.test(v.club.sport) || !TEXT_OK.test(v.club.venue)) return TEXT_MSG;
+  if (!v.events.every((e) => e.date && e.title)) return "Varje datum behöver både datum och en rubrik – ta bort ofullständiga rader.";
+  if (!v.events.every((e) => TEXT_OK.test(e.title))) return TEXT_MSG;
+  if (!v.sponsors.every((s) => TEXT_OK.test(s))) return TEXT_MSG;
+  if (v.kontakt.length < 5) return "Fyll i en kontaktuppgift (e-post eller telefon) så vi kan nå er om något är oklart.";
+  return "";
+}
+
 // --- Efter nedladdning: be om en ärlig recension + visa EN relaterad produkt för samma datum/ort.
 // Etsys regler (Reviews/Extortion/Shilling): inga motprestationer för en recension, inget tryck, inte be om "5 stjärnor".
 // Därför: ingen rabatt, ingen koppling mellan recension och erbjudande, och erbjudandet visas för alla köpare lika.
@@ -494,9 +599,23 @@ export default {
     if (req.method === "GET" && ["/golf-kolla", "/golf-check", "/golf"].includes(p)) {
       return golfCheckPage(GOLF_INDEX, Object.fromEntries(url.searchParams), esc, page);
     }
+    if (req.method === "GET" && p === "/kalender") return foreningskalenderForm({});
+    if (req.method === "GET" && p === "/kalender-villkor") return kalenderVillkorPage();
+    if (req.method === "POST" && p === "/kalender") {
+      const f = Object.fromEntries((await req.formData()).entries());
+      const v = parseKalender(f);
+      const verr = validateKalender(v);
+      if (verr) return foreningskalenderForm(v, verr);
+      const id = newId();
+      const job = { id, product: "foreningskalender", club: v.club, events: v.events, sponsors: v.sponsors,
+                    style: v.style, format: v.format, kontakt: v.kontakt, status: "pending", created: new Date().toISOString() };
+      await env.JOBS.put(`job:${id}`, JSON.stringify(job), { expirationTtl: TTL });
+      await env.JOBS.put(`pending:${id}`, "1", { expirationTtl: TTL });
+      return Response.redirect(`${url.origin}/s/${id}`, 303);
+    }
     if (req.method === "GET" && p === "/privacy") return page("Privacy & terms", `<h1>Privacy &amp; terms</h1>
 <p><b>Who we are.</b> This service is run by Moodly Sverige, a Swedish non-profit association (org.nr 802556-3845), Vaxholm, Sweden. Surplus funds support work for children's well-being.</p>
-<p><b>What we collect.</b> Only what you enter: Etsy order number, the text for your poster, place(s), date, time, language and – for golf course maps – the course, hole and player name. We use it only to create and deliver your file (star map, eclipse guide, sky calendar, map, find-your-way map, golf course map or Moon phase poster).</p>
+<p><b>What we collect.</b> Only what you enter: Etsy order number, the text for your poster, place(s), date, time, language and – for golf course maps – the course, hole and player name. We use it only to create and deliver your file (star map, eclipse guide, sky calendar, map, find-your-way map, golf course map or Moon phase poster). The club calendar (<a style="color:#d9c9a0" href="/kalender">/kalender</a>) is sold directly to sports clubs, not through Etsy – see its own <a style="color:#d9c9a0" href="/kalender-villkor">terms</a> for what is collected and deleted.</p>
 <p><b>How long.</b> Everything, including your file, is deleted automatically after 90 days.</p>
 <p><b>Sharing.</b> We never sell or share your details. They are processed by our hosting providers (Cloudflare, GitHub) only to run the service. For a physical print (poster, framed print or canvas), your print file and delivery address are also shared with our print partner Gelato, who prints and ships the item directly to you.</p>
 <p><b>Your rights.</b> You can ask us to delete your data earlier or ask what we store, via the contact address below or Etsy messages.</p>
@@ -553,6 +672,13 @@ export default {
     if (req.method === "GET" && (m = p.match(/^\/s\/([0-9a-f]{24})$/))) {
       const job = JSON.parse((await env.JOBS.get(`job:${m[1]}`)) || "null");
       if (!job) return page("Not found", `<h1>Link not found</h1><p>This link has expired or does not exist.</p><a class="btn" href="/">Create a star map</a>`);
+      if (job.product === "foreningskalender") {
+        const namn = (job.club && job.club.name) || "";
+        if (job.status === "ready")
+          return page("Din klubbkalender är klar", `<div class="card"><h1>Din klubbkalender är klar</h1><p>${esc(namn)}</p><a class="btn" href="/f/${job.id}">Ladda ner pdf</a><p><small>13 sidor (omslag + jan–dec), ${esc(job.format)} liggande. Länken fungerar i 90 dagar.</small></p></div>`, undefined, "sv");
+        if (job.status === "failed") return foreningskalenderForm(job, KAL_REASONS[job.reason] || REASONS[job.reason] || KAL_REASONS.internal);
+        return page("Din klubbkalender skapas", `<div class="card"><h1>Din klubbkalender skapas</h1><p>Vi lägger in svenska helgdagar, namnsdagar, månfaser och ${esc(namn)}s egna datum. Klart inom en timme.</p><p>Spara den här sidan – den uppdateras automatiskt.</p></div>`, 60, "sv");
+      }
       if (PRODUCTS[job.product]) {
         const P = PRODUCTS[job.product];
         if (job.status === "ready")
@@ -571,7 +697,7 @@ export default {
       const pdf = await env.JOBS.get(`pdf:${m[1]}`, "arrayBuffer");
       if (!pdf) return new Response("Not found", { status: 404 });
       const fj = JSON.parse((await env.JOBS.get(`job:${m[1]}`)) || "null");
-      const fname = fj && PRODUCTS[fj.product] ? PRODUCTS[fj.product].file : "star-map.pdf";
+      const fname = fj && fj.product === "foreningskalender" ? "klubbkalender-2027.pdf" : fj && PRODUCTS[fj.product] ? PRODUCTS[fj.product].file : "star-map.pdf";
       return new Response(pdf, { headers: { "content-type": "application/pdf", "content-disposition": `attachment; filename="${fname}"` } });
     }
 

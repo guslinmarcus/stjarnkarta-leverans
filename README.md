@@ -18,6 +18,7 @@ GeoNames (CC BY 4.0, geonames.org) · Noto fonts (SIL OFL 1.1).
 | golfbana | `/?p=golfbana` (+ &style=klassisk/vintage/minimal/mork) | golfbana.py (+ golfdata.py) | grind_golfbana.py |
 | brollopskarta | `/?p=brollopskarta` (+ &style=klassisk/natt/sepia/blueprint) | brollopskarta.py (+ vagnat.py, osmdata.py) | grind_brollopskarta.py |
 | fodelsetavla | `/?p=fodelsetavla` (+ &variant=barn/husdjur ("gotcha day") &style=) | fodelsetavla.py | grind_fodelsetavla.py |
+| foreningskalender | `/kalender` (eget flöde, inte Etsy – se villkor på `/kalender-villkor`) | foreningskalender.py | grind_foreningskalender.py |
 
 Kartprodukternas data: Lantmäteriets öppna FTP (Häradsekonomiska, Generalstabs- och Ekonomiska kartan, CC0; bladindex i
 fulfil/data/lm/kartblad_index.json.gz, bladen cachas i fulfil/data/lm/cache/ – ej i git, 70–160 MB/blad) · OpenStreetMap ur
