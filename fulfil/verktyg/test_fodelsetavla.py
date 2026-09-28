@@ -84,6 +84,18 @@ def main(n):
     OUT.mkdir(parents=True, exist_ok=True)
     rng = random.Random(20260928)
     orders = [make_barn(rng, i) for i in range(n)] + [make_husdjur(rng, i) for i in range(max(4, n // 4))]
+    # samma väg som driften: portalens jobb -> fulfil.make_order (fångade 2026-09-28 att husdjur saknade "units")
+    import fulfil
+    for jid, job in (("portal_barn", {"text": "Signe", "variant": "barn", "date": "2026-03-03", "time": "07:22", "city": "Vaxholm",
+                                      "country": "Sverige", "style": "natur", "weight_g": "3450", "height_cm": "51", "lang": "sv"}),
+                     ("portal_husdjur", {"text": "Bruno", "variant": "husdjur", "date": "2026-05-01", "city": "Stockholm",
+                                         "country": "Sweden", "style": "nordisk_minimal", "lang": "en"}),
+                     ("portal_husdjur_us", {"text": "Molly", "variant": "husdjur", "date": "2025-10-10", "city": "New York",
+                                            "country": "USA", "style": "ballong", "accent": "mint", "lang": "en"})):
+        o, err = fulfil.make_order(dict(job, id=jid, product="fodelsetavla"))
+        if err:
+            sys.exit(f"make_order vägrade {jid}: {err}")
+        orders.append(o)
     res = []
     t0 = time.perf_counter()
     for k, o in enumerate(orders):

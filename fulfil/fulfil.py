@@ -316,6 +316,7 @@ def make_fodelsetavla(job, lang):
         order["accent"] = job["accent"]
     if variant == "husdjur":
         order["time"] = None
+        order["units"] = fodelse_units(lang, cc)  # grinden kräver enhetsvalet även för husdjur (ingen vikt/längd)
         return order, None
     t = str(job.get("time") or "")
     order["time"] = t[:5] if re.fullmatch(r"\d{2}:\d{2}(:\d{2})?", t) and int(t[:2]) < 24 and int(t[3:5]) < 60 else None
