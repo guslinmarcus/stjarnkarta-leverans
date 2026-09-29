@@ -721,7 +721,7 @@ function julkulaProofPage(ref, jobb, error) {
   const bilder = proof.kulor.map((url, i) => `<div${flera ? ` style="margin-bottom:14px"` : ""}>${flera ? `<p><small>Bauble ${i + 1} of ${proof.kulor.length}</small></p>` : ""}<img src="${esc(url)}" alt="Bauble ${i + 1} design" style="width:100%;border-radius:10px"></div>`).join("");
   return page("Your ornament preview", `
 <h1>Your ornament preview</h1>
-<p>Round ${proof.omgang} of 3. Please look closely at ${flera ? "every bauble" : "the design"} before approving - once you approve, we send ${flera ? "them" : "it"} to production.</p>
+<p>Preview ${proof.omgang}. Please look closely at ${flera ? "every design" : "the design"} before approving - once you approve, we send ${flera ? "them" : "it"} to production. Not happy with something? Ask for a change - as many times as you like, free of charge.</p>
 ${bilder}
 ${error ? `<p class="err">${esc(error)}</p>` : ""}
 ${svarad ? `<div class="card"><p>Thank you - we have received your answer for round ${proof.omgang}. We will be in touch by email.</p></div>` : `
@@ -729,10 +729,152 @@ ${svarad ? `<div class="card"><p>Thank you - we have received your answer for ro
 <input type="hidden" name="omgang" value="${proof.omgang}">
 <button type="submit" name="val" value="godkann">Approve ${flera ? "all" : ""}</button>
 <p style="margin:18px 0 0"><small>Not quite right? Describe what to change (mention which bauble if only one is wrong), then request a change instead:</small></p>
-<label for="feedback">What should we change (optional)</label><input id="feedback" name="feedback" maxlength="500">
+<label for="feedback">What should we change? (e.g. "the eyebrows look worried", "zoom out so the ears are not cut", "make it warmer")</label><input id="feedback" name="feedback" maxlength="500">
 <button type="submit" name="val" value="andra" class="btn2">Request a change</button>
 </form>`}
-<p><small>Up to 3 rounds of changes are included. Moodly Sverige.</small></p>`);
+<p><small>Unlimited changes are included - we want you to love it. Moodly Sverige.</small></p>`);
+}
+
+
+// --- KUNDFOTOGRIND i portalen (2026-09-29, agentbutik/KUNDFOTOGRIND.md steg 1 + 4-5). Gemensam för ALLA
+// fotoprodukter: julkula (par/familj/husdjur), julkula_nytthem (husfoto), minneskula, fodelsetavla_skiss (bebis).
+// Steg 1 här är den SNABBA intagskontrollen vid uppladdning: (a) i webbläsaren mäts upplösning, skärpa och ljus
+// innan något skickas (mjuka varningar), (b) på servern parsas bildmåtten och en vision-modell (Claude Haiku 4.5,
+// ~0,002 USD/foto) svarar på FAKTAFRÅGOR om huvuden/hus/bebis; reglerna räknas i kod nedan (samma trösklar som
+// verktyg/kundfotogrind.py). Underkänt foto sparas ÄNDÅ (inget tappas) men markeras grind.ok=false och kunden får
+// direkt ett vänligt, konkret svar om varför ett bättre foto behövs. Fabrikens fullständiga grind (steg 1-3 i
+// kundfotogrind.py) körs sedan på det sparade fotot och kan skriva tillbaka sitt utfall via PUT /api/julkula/grind.
+// Saknas secreten ANTHROPIC_API_KEY hoppas modellkontrollen över (grind.kontroll="ej_kord") - aldrig ett stopp.
+const FOTO_PRODUKTER = {
+  julkula: { namn: "Custom cartoon ornament", motiv: "huvuden", max: 4 },
+  julkula_nytthem: { namn: "New home ornament", motiv: "hus", max: 1 },
+  minneskula: { namn: "Memorial ornament", motiv: "huvuden", max: 4 },
+  fodelsetavla_skiss: { namn: "Birth poster with sketch", motiv: "bebis", max: 1 },
+};
+const FOTO_MIN_KORT_SIDA = 600;
+const FOTO_MEDD = {
+  upplosning: (w, h) => `This photo is a bit too small for a sharp print (${w}x${h} px). Could you upload the original photo from your phone or camera (not a screenshot or a downloaded thumbnail)? Anything from about 1200 px on the short side works great.`,
+  inget_huvud: "We could not find a clear face or animal head in this photo. Could you upload a photo where the person or pet is facing the camera and the whole head is visible?",
+  huvud_litet: "The face(s) are quite small in this photo, so the details (eyes, expression) would be lost. Could you upload a photo taken a little closer, where the head fills at least a quarter of the picture?",
+  avskuret: "Part of a head (hair, ears or chin) is cut off at the edge of this photo, so we cannot draw the whole face. Could you upload a photo where the whole head is inside the picture with some space around it?",
+  skymt: "The face is partly covered or turned away from the camera in this photo. Could you upload one where the face is clearly visible?",
+  skarpa: "This photo looks a little blurry around the face, and the artwork copies every detail - blur included. Could you upload a sharper photo, ideally taken in daylight and held still?",
+  morkt: "This photo is quite dark, so the eyes and features would be hard to draw well. Could you upload a photo taken in brighter light (daylight near a window is perfect)?",
+  ljust: "This photo is very bright/overexposed around the face, so the details are washed out. Could you upload one with softer light?",
+  inget_hus: "We could not find a house or building facade in this photo. Could you upload a photo taken from the street or garden, showing the front of the home?",
+  hus_avskuret: "Part of the house (roof, a side wall or the ground floor) is cut off at the edge of this photo. Could you upload one where the whole facade is inside the picture with some sky and ground around it?",
+  hus_lutar: "The house looks tilted in this photo, which would look odd in the illustration. Could you upload a photo taken straight on, holding the camera level?",
+  hus_skymt: "A large part of the facade is hidden behind trees, cars or a fence in this photo. Could you upload one where most of the front of the house is visible?",
+  bebis_kropp: "For the birth poster we draw the whole baby, but in this photo part of the body (hands, feet or head) is cut off or hidden. Could you upload a photo where the whole baby is visible with a little space around?",
+};
+
+function bildMatt(bytes) {
+  // JPEG/PNG/WebP-mått ur filhuvudet (ingen bildavkodning i Workern)
+  const b = bytes;
+  if (b[0] === 0x89 && b[1] === 0x50) return { w: (b[16] << 24 | b[17] << 16 | b[18] << 8 | b[19]) >>> 0, h: (b[20] << 24 | b[21] << 16 | b[22] << 8 | b[23]) >>> 0 };
+  if (b[0] === 0xff && b[1] === 0xd8) {
+    let i = 2;
+    while (i < b.length - 9) {
+      if (b[i] !== 0xff) { i++; continue; }
+      const m = b[i + 1];
+      if (m >= 0xc0 && m <= 0xcf && m !== 0xc4 && m !== 0xc8 && m !== 0xcc) return { h: b[i + 5] << 8 | b[i + 6], w: b[i + 7] << 8 | b[i + 8] };
+      i += 2 + (b[i + 2] << 8 | b[i + 3]);
+    }
+  }
+  if (b[0] === 0x52 && b[1] === 0x49 && b[8] === 0x57) { // WebP (VP8/VP8L/VP8X)
+    const tag = String.fromCharCode(b[12], b[13], b[14], b[15]);
+    if (tag === "VP8X") return { w: 1 + (b[24] | b[25] << 8 | b[26] << 16), h: 1 + (b[27] | b[28] << 8 | b[29] << 16) };
+    if (tag === "VP8L") return { w: 1 + ((b[21] | b[22] << 8) & 0x3fff), h: 1 + (((b[22] >> 6) | b[23] << 2 | (b[24] & 0x0f) << 10) & 0x3fff) };
+    if (tag === "VP8 ") return { w: (b[26] | b[27] << 8) & 0x3fff, h: (b[28] | b[29] << 8) & 0x3fff };
+  }
+  return null;
+}
+
+const FOTO_FRAGOR = {
+  huvuden: `Answer ONLY with JSON. Photo-intake check for a portrait product. {"huvuden":0,"alla_helt_synliga":true,"nagot_skymt_eller_bortvant":false,"storsta_huvud_andel_av_kortsida":0.0,"skarpa":"skarp|lite_mjuk|suddig","ljus":"bra|morkt|overexponerat"} huvuden = number of people+animal heads that are the main subject (ignore tiny background figures). storsta_huvud_andel_av_kortsida = height of the largest head divided by the shorter image side. alla_helt_synliga=false only if a substantial part of a head (top of head, ear, chin) is outside the photo. A side profile counts as visible.`,
+  hus: `Answer ONLY with JSON. Photo-intake check for a house-facade illustration. {"hus_finns":true,"hela_fasaden_synlig":true,"lutning_grader":0,"skymd_andel":0.0,"hus_andel_av_kortsida":0.0,"skarpa":"skarp|lite_mjuk|suddig","ljus":"bra|morkt|overexponerat"} lutning_grader = how much the vertical walls lean from vertical. skymd_andel = fraction of the facade hidden by trees/cars/fences.`,
+  bebis: `Answer ONLY with JSON. Photo-intake check for a newborn sketch poster that shows the WHOLE baby. {"bebis_finns":true,"hela_kroppen_synlig":true,"ansikte_synligt":true,"huvud_andel_av_kortsida":0.0,"skarpa":"skarp|lite_mjuk|suddig","ljus":"bra|morkt|overexponerat"} hela_kroppen_synlig=false if any hand, foot or the head is cut off or hidden under a blanket/person.`,
+};
+
+async function fotoGrindKontroll(env, bytes, contentType, motiv) {
+  // Returnerar {ok, orsaker:[], meddelande, kontroll:"modell"|"ej_kord"|"fel", fakta, matt}
+  const orsaker = [];
+  const matt = bildMatt(bytes);
+  if (matt && matt.w && matt.h && Math.min(matt.w, matt.h) < FOTO_MIN_KORT_SIDA) orsaker.push(["upplosning", FOTO_MEDD.upplosning(matt.w, matt.h)]);
+  let fakta = null, kontroll = "ej_kord";
+  if (env.ANTHROPIC_API_KEY) {
+    try {
+      let bin = ""; const chunk = 0x8000;
+      for (let i = 0; i < bytes.length; i += chunk) bin += String.fromCharCode.apply(null, bytes.subarray(i, i + chunk));
+      const r = await fetch("https://api.anthropic.com/v1/messages", {
+        method: "POST",
+        headers: { "x-api-key": env.ANTHROPIC_API_KEY, "anthropic-version": "2023-06-01", "content-type": "application/json" },
+        body: JSON.stringify({ model: "claude-haiku-4-5", max_tokens: 300, messages: [{ role: "user", content: [
+          { type: "image", source: { type: "base64", media_type: contentType, data: btoa(bin) } },
+          { type: "text", text: FOTO_FRAGOR[motiv] || FOTO_FRAGOR.huvuden } ] }] }),
+      });
+      const j = await r.json();
+      const txt = ((j.content || []).map((c) => c.text || "").join("")).trim();
+      fakta = JSON.parse(txt.slice(txt.indexOf("{"), txt.lastIndexOf("}") + 1));
+      kontroll = "modell";
+    } catch (e) { kontroll = "fel"; }
+  }
+  if (fakta) {
+    if (motiv === "hus") {
+      if (!fakta.hus_finns) orsaker.push(["inget_hus", FOTO_MEDD.inget_hus]);
+      else {
+        if (!fakta.hela_fasaden_synlig) orsaker.push(["hus_avskuret", FOTO_MEDD.hus_avskuret]);
+        if (Math.abs(+fakta.lutning_grader || 0) > 8) orsaker.push(["hus_lutar", FOTO_MEDD.hus_lutar]);
+        if ((+fakta.skymd_andel || 0) > 0.25) orsaker.push(["hus_skymt", FOTO_MEDD.hus_skymt]);
+      }
+    } else if (motiv === "bebis") {
+      if (!fakta.bebis_finns) orsaker.push(["inget_huvud", FOTO_MEDD.inget_huvud]);
+      else {
+        if (!fakta.hela_kroppen_synlig) orsaker.push(["bebis_kropp", FOTO_MEDD.bebis_kropp]);
+        if (!fakta.ansikte_synligt) orsaker.push(["skymt", FOTO_MEDD.skymt]);
+        if ((+fakta.huvud_andel_av_kortsida || 0) < 0.08) orsaker.push(["huvud_litet", FOTO_MEDD.huvud_litet]);
+      }
+    } else {
+      if (!(+fakta.huvuden > 0)) orsaker.push(["inget_huvud", FOTO_MEDD.inget_huvud]);
+      else {
+        if ((+fakta.storsta_huvud_andel_av_kortsida || 0) < 0.08) orsaker.push(["huvud_litet", FOTO_MEDD.huvud_litet]);
+        if (fakta.alla_helt_synliga === false) orsaker.push(["avskuret", FOTO_MEDD.avskuret]);
+        if (fakta.nagot_skymt_eller_bortvant) orsaker.push(["skymt", FOTO_MEDD.skymt]);
+      }
+    }
+    if (fakta.skarpa === "suddig") orsaker.push(["skarpa", FOTO_MEDD.skarpa]);
+    if (fakta.ljus === "morkt") orsaker.push(["morkt", FOTO_MEDD.morkt]);
+    if (fakta.ljus === "overexponerat") orsaker.push(["ljust", FOTO_MEDD.ljust]);
+  }
+  return { ok: orsaker.length === 0, orsaker: orsaker.map((o) => o[0]), meddelande: orsaker.map((o) => o[1]).join(" "), kontroll, fakta, matt };
+}
+
+function fotoUploadPage(produkt, ordernummer, antal, jobb) {
+  const P = FOTO_PRODUKTER[produkt] || FOTO_PRODUKTER.julkula;
+  const n = Math.min(P.max, Math.max(1, antal || 1));
+  const status = (jobb && jobb.foton || []).map((f) => `<li>Photo ${f.kula}: ${f.grind && f.grind.ok === false ? `<b>needs a better photo</b> - ${esc(f.grind.meddelande || "")}` : f.grind && f.grind.ok ? "received and looks good" : "received"}</li>`).join("");
+  const falt = Array.from({ length: n }, (_, i) => `<label for="f${i + 1}">Photo for ${P.motiv === "hus" ? "your home" : P.motiv === "bebis" ? "your baby" : n > 1 ? `ornament ${i + 1}` : "the portrait"}</label><input type="file" id="f${i + 1}" data-kula="${i + 1}" accept="image/jpeg,image/png,image/webp"><div class="hint" id="h${i + 1}"></div>`).join("");
+  const tips = P.motiv === "hus" ? "Take the photo straight on from the street, with the whole front of the house in the picture (roof to ground) and not hidden by cars or trees."
+    : P.motiv === "bebis" ? "Use a sharp, well-lit photo where the whole baby is visible - head, both hands and both feet - with a little space around."
+    : "Use a sharp, well-lit photo where the whole head (hair, ears, chin) is inside the picture, the face is turned towards the camera and fills at least a quarter of the photo. One photo per ornament.";
+  return page(`Upload your photo - ${P.namn}`, `
+<h1>Upload your photo</h1>
+<p><b>${esc(P.namn)}</b> - order ${esc(ordernummer)}.</p>
+<p><small>${esc(tips)}</small></p>
+${status ? `<div class="card"><p><b>Already received:</b></p><ul>${status}</ul><p><small>Uploading again for the same photo replaces it.</small></p></div>` : ""}
+${jobb && jobb.proof && jobb.proof.ref && jobb.proof.kulor && jobb.proof.kulor.length ? `<div class="card"><p><b>Your preview is ready.</b> <a href="/proof/${esc(jobb.proof.ref)}">Open the preview</a> to approve it or ask for changes (unlimited, free).</p></div>` : ""}
+<form id="fotoform">${falt}<button type="submit" id="skicka">Upload</button></form>
+<div id="svar" class="card" style="display:none"></div>
+<p><small>We check every photo right away and tell you straight away if a better one is needed. You will get a preview of the finished design by email before anything is printed, with unlimited changes. Photos are deleted automatically after 60 days.</small></p>
+<script>
+const ORDER=${JSON.stringify(ordernummer)}, PRODUKT=${JSON.stringify(produkt)}, ANTAL=${n};
+function mat(file){return new Promise(res=>{const img=new Image();img.onload=()=>{const s=512/Math.max(img.width,img.height);const c=document.createElement('canvas');c.width=Math.max(8,Math.round(img.width*s));c.height=Math.max(8,Math.round(img.height*s));const x=c.getContext('2d');x.drawImage(img,0,0,c.width,c.height);const d=x.getImageData(0,0,c.width,c.height).data;const W=c.width,H=c.height,g=new Float32Array(W*H);let sum=0;for(let i=0;i<W*H;i++){g[i]=0.299*d[i*4]+0.587*d[i*4+1]+0.114*d[i*4+2];sum+=g[i];}let lv=0,n=0,m=0;for(let y=1;y<H-1;y++)for(let x2=1;x2<W-1;x2++){const v=4*g[y*W+x2]-g[y*W+x2-1]-g[y*W+x2+1]-g[(y-1)*W+x2]-g[(y+1)*W+x2];m+=v;lv+=v*v;n++;}m/=n;res({w:img.width,h:img.height,ljus:sum/(W*H),skarpa:lv/n-m*m});URL.revokeObjectURL(img.src);};img.src=URL.createObjectURL(file);});}
+document.querySelectorAll('input[type=file]').forEach(inp=>inp.addEventListener('change',async()=>{const f=inp.files[0];const h=document.getElementById('h'+inp.dataset.kula);if(!f){h.textContent='';return;}const m=await mat(f);const w=[];if(Math.min(m.w,m.h)<${FOTO_MIN_KORT_SIDA})w.push('This photo is small ('+m.w+'x'+m.h+' px) - please use the original from your phone or camera.');else if(Math.min(m.w,m.h)<1200)w.push('Tip: a larger original (1200 px or more) gives an even sharper print.');if(m.skarpa<20)w.push('This looks blurry - a sharper photo will give a much better result.');if(m.ljus<45)w.push('This looks dark - a photo taken in brighter light works better.');if(m.ljus>215)w.push('This looks very bright - softer light works better.');h.innerHTML=w.length?w.map(x=>'<span>'+x+'</span>').join('<br>'):'Looks good.';h.style.color=w.length?'#b3261e':'#2e7d32';}));
+document.getElementById('fotoform').addEventListener('submit',async e=>{e.preventDefault();const b=document.getElementById('skicka');b.disabled=true;b.textContent='Checking your photo...';const bilder=[];for(const inp of document.querySelectorAll('input[type=file]')){const f=inp.files[0];if(!f)continue;const buf=await f.arrayBuffer();let bin='';const u=new Uint8Array(buf);for(let i=0;i<u.length;i+=0x8000)bin+=String.fromCharCode.apply(null,u.subarray(i,i+0x8000));bilder.push({kula:+inp.dataset.kula,content_type:f.type,data_base64:btoa(bin)});}
+const sv=document.getElementById('svar');if(!bilder.length){sv.style.display='block';sv.textContent='Please choose a photo first.';b.disabled=false;b.textContent='Upload';return;}
+try{const r=await fetch('/julkula/foto',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({ordernummer:ORDER,produkt:PRODUKT,antal:ANTAL,bilder})});const j=await r.json().catch(()=>null);sv.style.display='block';if(!r.ok||!j){sv.innerHTML='Something went wrong ('+r.status+'). Please try again.';}else{sv.innerHTML=j.foton.map(f=>'<p><b>Photo '+f.kula+':</b> '+(f.grind&&f.grind.ok===false?'<span style="color:#b3261e">We need a better photo.</span> '+f.grind.meddelande:'<span style="color:#2e7d32">Received - looks good!</span> We will email you a preview of the design before printing.')+'</p>').join('');}}catch(err){sv.style.display='block';sv.textContent='Upload failed - please try again.';}
+b.disabled=false;b.textContent='Upload';});
+</script>`);
 }
 
 export default {
@@ -783,6 +925,15 @@ export default {
     // Body: {ordernummer, antal (1-4, valfritt - antalet kulor i ordern, från Antal kulor-variationen), bilder:
     // [{kula: 1-4, content_type, data_base64}, ...]} - EN bild per kula (Prodigis XMAS-PLAS-BAUB har bara en
     // tryckyta, se prodigi_client.py:s docstring), inte längre framsida/baksida.
+    // Kundens uppladdningssida (KUNDFOTOGRIND steg 1): /foto?order=<etsy-ordernummer>&produkt=julkula|julkula_nytthem|minneskula|fodelsetavla_skiss&antal=1-4
+    if (req.method === "GET" && (p === "/foto" || p === "/julkula/foto")) {
+      const q = Object.fromEntries(url.searchParams);
+      const ordernummer = String(q.order || q.ordernummer || "").replace(/\D/g, "");
+      const produkt = FOTO_PRODUKTER[q.produkt] ? q.produkt : "julkula";
+      if (!/^\d{6,14}$/.test(ordernummer)) return page("Upload your photo", `<h1>Upload your photo</h1><p>Please use the link from your order email - it contains your order number.</p><form method="get" action="/foto"><label for="order">Etsy order number</label><input id="order" name="order" inputmode="numeric" required><input type="hidden" name="produkt" value="${esc(produkt)}"><button type="submit">Continue</button></form>`);
+      const jobb = await julkulaJobb(env, ordernummer);
+      return fotoUploadPage(produkt, ordernummer, parseInt(q.antal, 10) || (jobb && jobb.antal) || 1, jobb);
+    }
     if (req.method === "POST" && p === "/julkula/foto") {
       let body;
       try { body = await req.json(); } catch (e) { return new Response("bad json", { status: 400 }); }
@@ -800,8 +951,10 @@ export default {
         try { bytes = julkulaB64ToBytes(b && b.data_base64); } catch (e) { return new Response("ogiltig bilddata", { status: 400 }); }
         if (!bytes.byteLength) return new Response("tom bild", { status: 400 });
         if (bytes.byteLength > JULKULA_MAX_BYTES) return new Response("för stor fil (max 10 MB)", { status: 413 });
+        const produkt = FOTO_PRODUKTER[body.produkt] ? body.produkt : "julkula";
+        const grind = await fotoGrindKontroll(env, bytes, ct, FOTO_PRODUKTER[produkt].motiv); // KUNDFOTOGRIND steg 1 (snabb)
         const token = await julkulaSparaBild(env, bytes, ct, { ordernummer, kula });
-        sparade.push({ kula, url: `${url.origin}/julkula/f/${token}` });
+        sparade.push({ kula, url: `${url.origin}/julkula/f/${token}`, grind: { ok: grind.ok, orsaker: grind.orsaker, meddelande: grind.meddelande, kontroll: grind.kontroll, matt: grind.matt, tid: new Date().toISOString() } });
       }
       const jobb = await julkulaJobb(env, ordernummer);
       const foton = (jobb && jobb.foton) || [];
@@ -810,7 +963,7 @@ export default {
         if (i >= 0) foton[i] = s; else foton.push(s);
       }
       foton.sort((a, b) => a.kula - b.kula);
-      await julkulaSpara(env, ordernummer, { antal, foton: foton.slice(0, JULKULA_MAX_KULOR) });
+      await julkulaSpara(env, ordernummer, { antal, produkt: FOTO_PRODUKTER[body.produkt] ? body.produkt : (jobb && jobb.produkt) || "julkula", foton: foton.slice(0, JULKULA_MAX_KULOR) });
       return Response.json({ ok: true, foton: sparade });
     }
     if (req.method === "GET" && (m = p.match(/^\/julkula\/f\/([0-9a-f]{32})$/))) {
@@ -833,7 +986,8 @@ export default {
       const jobb = await julkulaJobb(env, ordernummer);
       if (!jobb || !jobb.proof || jobb.proof.omgang !== omgang)
         return julkulaProofPage(m[1], jobb, "This preview round is no longer active - please check your latest email for a current link.");
-      await julkulaSpara(env, ordernummer, { proof_svar: { val, omgang, feedback: val === "andra" ? String(f.feedback || "").slice(0, 500) : undefined } });
+      if (val === "andra" && !String(f.feedback || "").trim()) return julkulaProofPage(m[1], jobb, "Please tell us what to change so the next preview is right.");
+      await julkulaSpara(env, ordernummer, { proof_svar: { val, omgang, feedback: val === "andra" ? String(f.feedback || "").slice(0, 500) : undefined, tid: new Date().toISOString() } });
       return page("Thank you", `<h1>Thank you</h1><p>${val === "godkann" ? "Your ornament has been approved - we will send it to production." : "We received your requested change and will send you a new preview soon."}</p>`);
     }
 
@@ -942,6 +1096,21 @@ export default {
       // Julkulan: lagrar EN godkänd Prodigi-konstfil (raster, en per kula) och ger tillbaka en osynlig länk
       // (samma /julkula/f/<token>-rutt kundfotona redan serveras från, publik utan auth - Prodigi hämtar
       // filen härifrån). tryck/julkula_kedja.py:s_uppladdad -> tryck/kallor.py:Portal.lagra_julkula_konstfil.
+      // KUNDFOTOGRIND: fabrikens fullständiga grind (verktyg/kundfotogrind.py, steg 1-3) rapporterar per foto - ett
+      // underkänt foto visas för kunden på /foto-sidan med samma vänliga meddelande; status "till_chefen"/"vantar_chef"
+      // loggas på jobbet (kunden ser bara "vi återkommer med en förhandsvisning").
+      if (req.method === "PUT" && (m = p.match(/^\/api\/julkula\/grind\/(\d{6,14})$/))) {
+        let body;
+        try { body = await req.json(); } catch (e) { return new Response("bad json", { status: 400 }); }
+        const jobb = await julkulaJobb(env, m[1]);
+        if (!jobb) return new Response("Not found", { status: 404 });
+        const kula = parseInt(body.kula, 10) || 1;
+        const foton = jobb.foton || [];
+        const i = foton.findIndex((f) => f.kula === kula);
+        if (i >= 0) foton[i].grind = { ok: !!body.ok, orsaker: body.orsaker || [], meddelande: String(body.meddelande || "").slice(0, 800), kontroll: "fabrik", status: body.status || "", tid: new Date().toISOString() };
+        await julkulaSpara(env, m[1], { foton, grind_status: body.status || "" });
+        return Response.json({ ok: true });
+      }
       if (req.method === "PUT" && (m = p.match(/^\/api\/julkula\/konstfil\/(etsy-\d+-\d+)\/([1-4])$/))) {
         const [, ref, kula] = m;
         const body = await req.arrayBuffer();
@@ -973,7 +1142,7 @@ export default {
         let body;
         try { body = await req.json(); } catch (e) { return new Response("bad json", { status: 400 }); }
         const omgang = parseInt(body.omgang, 10);
-        if (!(omgang >= 1 && omgang <= 3)) return new Response("bad omgang (1-3)", { status: 400 });
+        if (!(omgang >= 1 && omgang <= 99)) return new Response("bad omgang (1-99)", { status: 400 }); // obegränsade ändringar (KUNDFOTOGRIND steg 4)
         const kulor = Array.isArray(body.kulor) ? body.kulor : [];
         if (!kulor.length || kulor.length > JULKULA_MAX_KULOR) return new Response(`1-${JULKULA_MAX_KULOR} kulor krävs`, { status: 400 });
         const urls = [];
@@ -988,7 +1157,8 @@ export default {
           const token = await julkulaSparaBild(env, bytes, ct, { ordernummer, typ: `proof_kula${i + 1}`, omgang });
           urls.push(`${url.origin}/julkula/f/${token}`);
         }
-        await julkulaSpara(env, ordernummer, { proof: { omgang, kulor: urls } });
+        const ref = /^etsy-\d+-\d+$/.test(String(body.ref || "")) ? String(body.ref) : undefined; // för länken på /foto-sidan
+        await julkulaSpara(env, ordernummer, { proof: { omgang, kulor: urls, ref } });
         return Response.json({ ok: true, kulor: urls });
       }
       if (req.method === "GET" && p === "/api/queue") {
